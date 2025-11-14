@@ -1,0 +1,64 @@
+
+
+
+
+<!-- Backdrop -->
+<div class="fixed inset-0 bg-black/60 z-40 animate-fade-in" (click)="onClose()"></div>
+
+<!-- Panel -->
+<div class="fixed inset-x-4 bottom-4 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 border-2 border-amber-500/50 bg-stone-900/90 backdrop-blur-lg p-4 w-full max-w-lg z-50 animate-slide-up font-mono text-neutral-200">
+  
+  <div class="flex justify-between items-center mb-4">
+    @if (selectedPadIndex(); as idx) {
+      <h2 class="text-lg text-amber-400">[[ Sample Library: Pad {{ idx + 1 }} ]]</h2>
+    } @else {
+      <h2 class="text-lg text-amber-400">[[ Sample Library ]]</h2>
+    }
+    <button (click)="onClose()" class="border border-amber-500/50 px-2 hover:bg-amber-500 hover:text-black transition-colors">
+      [X]
+    </button>
+  </div>
+  
+  <div class="flex flex-col md:flex-row gap-4 max-h-[70vh]">
+    <!-- Categories -->
+    <div class="md:w-1/3 border border-amber-500/20 p-2 overflow-y-auto">
+      <h3 class="text-sm text-amber-400 mb-2">// CATEGORIES</h3>
+      <ul>
+        @for (category of sampleCategories; track category.category) {
+          <li 
+            (click)="onCategoryChange(category.category)"
+            class="p-1 cursor-pointer text-sm hover:bg-stone-700"
+            [class.bg-amber-500/50]="selectedCategory() === category.category">
+            > {{ category.category }}
+          </li>
+        }
+      </ul>
+    </div>
+
+    <!-- Samples -->
+    <div class="flex-1 border border-amber-500/20 p-2 flex flex-col">
+      <h3 class="text-sm text-amber-400 mb-2">// SAMPLES</h3>
+      <div class="flex-grow overflow-y-auto pr-2 sample-list">
+        @for (sample of filteredSamples(); track sample.key) {
+          <div class="flex justify-between items-center p-1 text-sm hover:bg-stone-700">
+            <span class="truncate">{{ sample.name }}</span>
+            <div class="flex gap-1">
+              <button (click)="previewSample(sample.key)" class="px-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black text-xs">[ PREVIEW ]</button>
+              <button (click)="assignSample(sample.key)" class="px-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black text-xs">[ ASSIGN ]</button>
+            </div>
+          </div>
+        }
+        @if (filteredSamples().length === 0) {
+          <p class="text-center text-xs text-neutral-500 py-4">[ No samples in this category ]</p>
+        }
+      </div>
+      <!-- Custom Sample Upload -->
+      <div class="mt-4 pt-2 border-t border-amber-500/20">
+        <label class="w-full text-center block p-2 border border-dashed border-amber-500/50 hover:bg-amber-500 hover:text-black cursor-pointer text-sm">
+          [ UPLOAD CUSTOM SAMPLE ]
+          <input #customSampleInput type="file" accept="audio/*" class="hidden" (change)="handleCustomSampleUpload($event)">
+        </label>
+      </div>
+    </div>
+  </div>
+</div>

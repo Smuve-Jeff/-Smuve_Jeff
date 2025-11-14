@@ -1,0 +1,8 @@
+{
+  "name": "Smuve_4.5",
+  "description": "An interactive music player with a visual equalizer and audio enhancement controls. Upload and play your local music files with a sleek, modern interface.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}

@@ -1,0 +1,17 @@
+
+.chat-history::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+  background: theme('colors.green.950'); /* green-950 */
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+  background: theme('colors.green.400'); /* green-400 */
+  border: 1px solid theme('colors.green.900'); /* green-900 */
+}
+
+.chat-history::-webkit-scrollbar-thumb:hover {
+  background: theme('colors.green.300'); /* green-300 */
+}

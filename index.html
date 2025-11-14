@@ -1,0 +1,254 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Aura Music Player</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    body { 
+      font-family: 'VT323', monospace;
+      background-color: #000;
+    }
+    /* Animations for modal */
+    @keyframes fade-in {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .animate-fade-in {
+      animation: fade-in 0.3s ease-out forwards;
+    }
+    @keyframes slide-up {
+      from { opacity: 0; transform: translateY(20px) scale(0.98); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .animate-slide-up {
+      animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    /* CRT Effect for Media Viewer (Player Mode) */
+    .media-container {
+      position: relative;
+      background-color: #0a1f0a; /* Dark green base for tinting */
+      overflow: hidden;
+    }
+    .media-container .media-element {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: grayscale(1) contrast(1.5);
+      mix-blend-mode: screen;
+      opacity: 0.7;
+    }
+    .media-container::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: repeating-linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.4) 0,
+          rgba(0, 0, 0, 0.4) 1px,
+          transparent 1px,
+          transparent 4px
+      );
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Generic Slider Styles */
+    input[type=range].aura-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      background-color: transparent;
+      cursor: pointer;
+    }
+
+    /* Horizontal Track */
+    input[type=range].aura-slider::-webkit-slider-runnable-track {
+      height: 4px;
+      background: #052e16;
+    }
+    input[type=range].aura-slider::-moz-range-track {
+      height: 4px;
+      background: #052e16;
+    }
+    
+    /* Thumb */
+    input[type=range].aura-slider::-webkit-slider-thumb {
+       -webkit-appearance: none;
+       appearance: none;
+       margin-top: -6px; /* center thumb on track */
+       width: 8px;
+       height: 16px;
+       background: #4ade80;
+       border: 1px solid #14532d;
+    }
+    input[type=range].aura-slider::-moz-range-thumb {
+       width: 8px;
+       height: 16px;
+       background: #4ade80;
+       border: 1px solid #14532d;
+       border-radius: 0;
+    }
+
+    /* Vertical Slider Specifics */
+    input[type=range].vertical-slider {
+        writing-mode: bt-lr;
+        width: 8px;
+        height: 120px;
+        padding: 0 5px;
+    }
+    input[type=range].vertical-slider::-webkit-slider-runnable-track {
+        width: 4px;
+        height: auto;
+    }
+    input[type=range].vertical-slider::-webkit-slider-thumb {
+       margin-top: 0;
+       margin-left: -6px; /* center thumb on track */
+       width: 16px;
+       height: 8px;
+    }
+    input[type=range].vertical-slider::-moz-range-track {
+        width: 4px;
+        height: auto;
+    }
+    input[type=range].vertical-slider::-moz-range-thumb {
+       width: 16px;
+       height: 8px;
+    }
+
+    /* --- VINTAGE DJ THEME --- */
+    .dj-vintage-theme {
+      background-color: #1c1917; /* stone-900 */
+      color: #e5e5e5; /* neutral-200 */
+      border-color: rgba(245, 158, 11, 0.5); /* amber-500 */
+    }
+    
+    .dj-vintage-theme input[type=range].aura-slider::-webkit-slider-runnable-track {
+      background: #44403c; /* stone-700 */
+    }
+    .dj-vintage-theme input[type=range].aura-slider::-moz-range-track {
+      background: #44403c;
+    }
+    .dj-vintage-theme input[type=range].aura-slider::-webkit-slider-thumb {
+       background: #f59e0b; /* amber-500 */
+       border: 1px solid #b45309; /* amber-700 */
+    }
+    .dj-vintage-theme input[type=range].aura-slider::-moz-range-thumb {
+       background: #f59e0b;
+       border: 1px solid #b45309;
+    }
+
+    .vinyl-platter {
+        position: relative;
+        width: 90%;
+        padding-bottom: 90%;
+        height: 0;
+        border-radius: 50%;
+        background: radial-gradient(circle, #222 0%, #111 70%, #1a1a1a 100%);
+        box-shadow: 0 0 20px rgba(0,0,0,0.7), inset 0 0 15px rgba(0,0,0,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 4px solid #333;
+    }
+    .vinyl-platter::before { /* grooves */
+        content: '';
+        position: absolute;
+        top: 10%; bottom: 10%; left: 10%; right: 10%;
+        border-radius: 50%;
+        background-image: repeating-radial-gradient(circle at center, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 2px);
+    }
+    .vinyl-platter .label {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 40%;
+        height: 40%;
+        border-radius: 50%;
+        background-color: #d97706; /* amber-600 */
+        border: 1px solid #fde68a; /* amber-200 */
+    }
+     .vinyl-platter .label.deck-a { background-color: #1e40af; } /* blue-800 */
+     .vinyl-platter .label.deck-b { background-color: #991b1b; } /* red-800 */
+
+    .vinyl-platter .spindle {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 8%;
+        height: 8%;
+        border-radius: 50%;
+        background: #1c1917; /* The background color */
+        border: 1px solid #555;
+    }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    .spinning {
+      animation: spin 1.8s linear infinite; /* 33.3 RPM */
+    }
+
+    /* VU Meter */
+    .vu-meter {
+      display: flex;
+      flex-direction: column-reverse;
+      gap: 2px;
+      width: 10px;
+      height: 100px;
+      border: 1px solid #44403c;
+      background-color: #292524;
+      padding: 2px;
+    }
+    .vu-meter .vu-bar {
+      width: 100%;
+      flex-grow: 1;
+      background-color: #44403c;
+      transition: background-color 0.05s ease-in-out;
+    }
+    .vu-meter .vu-bar.green { background-color: #166534; }
+    .vu-meter .vu-bar.yellow { background-color: #a16207; }
+    .vu-meter .vu-bar.red { background-color: #991b1b; }
+    
+    /* Recording Indicator */
+    @keyframes blink {
+      50% { opacity: 0.3; }
+    }
+    .rec-indicator.recording {
+      animation: blink 1s infinite;
+    }
+
+  </style>
+<script type="importmap">
+{
+  "imports": {
+    "rxjs": "https://aistudiocdn.com/rxjs@^7.8.2?conditions=es2015",
+    "rxjs/operators": "https://aistudiocdn.com/rxjs@^7.8.2/operators?conditions=es2015",
+    "rxjs/ajax": "https://aistudiocdn.com/rxjs@^7.8.2/ajax?conditions=es2015",
+    "rxjs/webSocket": "https://aistudiocdn.com/rxjs@^7.8.2/webSocket?conditions=es2015",
+    "rxjs/testing": "https://aistudiocdn.com/rxjs@^7.8.2/testing?conditions=es2015",
+    "rxjs/fetch": "https://aistudiocdn.com/rxjs@^7.8.2/fetch?conditions=es2015",
+    "@angular/core": "https://next.esm.sh/@angular/core@^20.3.11?external=rxjs",
+    "@angular/common": "https://next.esm.sh/@angular/common@^20.3.11?external=rxjs",
+    "@angular/platform-browser": "https://next.esm.sh/@angular/platform-browser@^20.3.11?external=rxjs",
+    "@angular/compiler": "https://next.esm.sh/@angular/compiler@^20.3.11?external=rxjs",
+    "@google/genai": "https://next.esm.sh/@google/genai@^1.29.1?external=rxjs"
+  }
+}
+</script>
+</head>
+<body>
+  <app-root></app-root>
+</body>
+</html>

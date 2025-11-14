@@ -1,0 +1,98 @@
+
+
+
+
+<div class="w-full text-neutral-200 p-4 bg-stone-900/50 border border-amber-500/30 flex flex-col gap-4 relative">
+  <h2 class="text-center text-lg text-amber-400">[ AURA BEAT STATION ]</h2>
+
+  <!-- Controls -->
+  <div class="flex flex-col sm:flex-row justify-between items-center gap-4 p-2 border border-amber-500/20">
+    <div class="flex items-center gap-4">
+      <button (click)="togglePlay()" class="w-24 px-4 py-2 border-2 border-amber-500 bg-stone-800 text-amber-300 hover:bg-amber-500 hover:text-black text-lg">
+        {{ isPlaying() ? '[ STOP ]' : '[ PLAY ]' }}
+      </button>
+      <div class="flex items-center gap-2">
+        <label for="bpm" class="text-sm">BPM:</label>
+        <input id="bpm-slider" type="range" min="60" max="200" [value]="bpm()" (input)="onBpmChange($event)" class="w-24 aura-slider">
+        <input id="bpm-text" type="number" min="60" max="200" [value]="bpm()" (input)="onBpmChange($event)" class="bg-stone-800 border border-amber-500/50 text-neutral-200 p-1 text-sm w-16 text-center focus:ring-amber-500 focus:border-amber-500">
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+       <label for="kit" class="text-sm">KIT:</label>
+       <select #kitSelect id="kit" (change)="changeKit(kitSelect.value)" class="bg-stone-800 border border-amber-500/50 text-neutral-200 p-1 text-sm focus:ring-amber-500 focus:border-amber-500">
+        @for (kit of kits; track kit.name) {
+          <option [value]="kit.name" [selected]="kit.name === activeKit().name">{{ kit.name }}</option>
+        }
+       </select>
+    </div>
+  </div>
+
+  <!-- Project Management & Routing -->
+  <div class="flex flex-col md:flex-row justify-between items-center gap-4 p-2 border border-amber-500/20 text-sm">
+    <div class="flex gap-2">
+      <button (click)="savePattern()" class="px-3 py-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black">[ SAVE .JSON ]</button>
+      <label class="px-3 py-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black cursor-pointer">
+        [ LOAD .JSON ]
+        <input type="file" accept=".json" class="hidden" (change)="handlePatternUpload($event)">
+      </label>
+      <button (click)="exportAsWav()" class="px-3 py-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black">[ EXPORT .WAV ]</button>
+    </div>
+    <div class="flex gap-2 items-center">
+      <span class="text-xs text-neutral-400">ROUTE TO DJ:</span>
+      <button (click)="routeDrumToDeck('A')" class="px-3 py-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black"
+        [class.bg-amber-500]="isDrumRoutedA()" [class.text-black]="isDrumRoutedA()">[ A ]</button>
+      <button (click)="routeDrumToDeck('B')" class="px-3 py-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black"
+        [class.bg-amber-500]="isDrumRoutedB()" [class.text-black]="isDrumRoutedB()">[ B ]</button>
+      @if (isDrumRoutedA() || isDrumRoutedB()) {
+        <button (click)="unrouteDrum('A')" class="px-3 py-1 border border-red-500/50 hover:bg-red-500 hover:text-black text-red-300">[ UNROUTE ]</button>
+      }
+    </div>
+  </div>
+
+  <!-- Pad Grid -->
+  <div class="grid grid-cols-4 gap-2">
+    @for(pad of pads(); track pad.name; let i = $index) {
+      <div 
+        (click)="openSampleLibrary(i)"
+        (contextmenu)="$event.preventDefault(); triggerPad(i)"
+        class="drum-pad"
+        [class.lit]="litPads().has(i)">
+        <span class="text-sm">{{ pad.name }}</span>
+        <span class="key-hint">{{ pad.key }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- Sequencer -->
+  <div class="w-full overflow-x-auto">
+    <div class="sequencer-grid">
+      <div class="sequencer-header"></div> <!--- Spacer for track names col -->
+       @for(step of [].constructor(16); track $index) {
+        <div class="step-header" [class.active]="currentStep() === $index">
+          {{ $index + 1 }}
+        </div>
+      }
+
+      @for(pad of pads(); track pad.name; let padIndex = $index) {
+        <div class="track-name">{{ pad.name }}</div>
+         @for(step of sequence().get(pad.sampleKey) || []; track $index) {
+          <div 
+            class="step"
+            [class.active]="currentStep() === $index"
+            [class.enabled]="step"
+            (click)="toggleStep(padIndex, $index)">
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  @if (showSampleLibrary()) {
+    <app-sample-library
+      [pads]="pads()"
+      [selectedPadIndex]="selectedPadIndex()"
+      (close)="closeSampleLibrary()"
+      (sampleAssigned)="assignSampleToPad($event)">
+    </app-sample-library>
+  }
+</div>

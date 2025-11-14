@@ -1,0 +1,83 @@
+
+
+
+
+<div class="w-full text-neutral-200 p-4 bg-purple-900/50 border border-purple-500/30 flex flex-col gap-4 relative min-h-[600px]">
+  <h2 class="text-center text-lg text-purple-400">[ AURA IMAGE LAB ]</h2>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
+    <!-- Image Upload & Prompt -->
+    <div class="flex flex-col gap-4 border border-purple-500/20 p-4">
+      <h3 class="text-base text-purple-300">// ORIGINAL IMAGE</h3>
+      <div class="flex-grow flex items-center justify-center border-2 border-dashed border-purple-700/50 p-2 min-h-[200px] overflow-hidden">
+        @if (originalImageUrl()) {
+          <img [src]="originalImageUrl()" alt="Uploaded Image" class="max-w-full max-h-full object-contain">
+        } @else {
+          <span class="text-neutral-500 text-sm">[ Upload an image to start ]</span>
+        }
+      </div>
+      
+      <label class="w-full text-center block p-2 border border-purple-500/50 hover:bg-purple-500 hover:text-black cursor-pointer text-sm">
+        [ UPLOAD IMAGE ]
+        <input type="file" #fileInput (change)="handleImageUpload($event)" accept="image/*" class="hidden">
+      </label>
+
+      <label for="edit-prompt" class="block text-sm text-purple-300">EDIT PROMPT:</label>
+      <textarea id="edit-prompt" 
+        [value]="editPrompt()" 
+        (input)="editPrompt.set($event.target.value)"
+        placeholder="e.g., 'Add a retro filter', 'Remove the person in the background', 'Make it look like a sci-fi landscape'" 
+        rows="4" 
+        class="w-full bg-purple-800/50 border border-purple-500/50 text-neutral-200 p-2 text-sm focus:ring-purple-500 focus:border-purple-500 resize-y"
+        [disabled]="!originalImageUrl() || isLoading()"></textarea>
+      
+      <div class="flex gap-2">
+        <button (click)="generateImage()" 
+          class="flex-grow px-4 py-2 border-2 border-purple-500 bg-purple-800 text-purple-300 hover:bg-purple-500 hover:text-black text-lg"
+          [disabled]="!originalImageUrl() || !editPrompt() || isLoading()">
+          @if (isLoading()) {
+            <span>[ GENERATING... ]</span>
+          } @else {
+            <span>[ GENERATE ]</span>
+          }
+        </button>
+        <button (click)="clearImage()" 
+          class="px-4 py-2 border-2 border-neutral-500 bg-neutral-800 text-neutral-300 hover:bg-neutral-500 hover:text-black text-lg">
+          [ CLEAR ]
+        </button>
+      </div>
+
+      @if (errorMessage()) {
+        <p class="text-red-500 text-sm mt-2 text-center">{{ errorMessage() }}</p>
+      }
+    </div>
+
+    <!-- Generated Images -->
+    <div class="flex flex-col gap-4 border border-purple-500/20 p-4">
+      <h3 class="text-base text-purple-300">// GENERATED IMAGE</h3>
+      <div class="flex-grow flex items-center justify-center border-2 border-dashed border-purple-700/50 p-2 min-h-[200px] overflow-hidden">
+        @if (generatedImageUrls().length > 0) {
+          @for (imgUrl of generatedImageUrls(); track $index) {
+            <img [src]="imgUrl" alt="Generated Image" class="max-w-full max-h-full object-contain">
+          }
+        } @else if (isLoading()) {
+          <span class="text-neutral-500 text-sm animate-pulse">[ Generating image... ]</span>
+        } @else {
+          <span class="text-neutral-500 text-sm">[ No image generated yet ]</span>
+        }
+      </div>
+      @if (originalImageUrl() || generatedImageUrls().length > 0) {
+        <button (click)="useAsAlbumArt()"
+           class="w-full text-center px-4 py-2 border-2 border-purple-500 bg-purple-800 text-purple-300 hover:bg-purple-500 hover:text-black text-lg mb-2">
+           [ USE AS ALBUM ART ]
+        </button>
+      }
+      @if (generatedImageUrls().length > 0) {
+        <a [href]="generatedImageUrls()[0]" download="aura-edited-image.png"
+           class="w-full text-center px-4 py-2 border-2 border-purple-500 bg-purple-800 text-purple-300 hover:bg-purple-500 hover:text-black text-lg">
+           [ DOWNLOAD ]
+        </a>
+      }
+    </div>
+  </div>
+</div>

@@ -1,15 +1,6 @@
-
-import { Component, ChangeDetectionStrategy, signal, ElementRef, viewChild, OnDestroy, input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, ElementRef, viewChild, OnDestroy, input, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GoogleGenAI } from '@google/genai'; // Changed to direct named import
-
-const getApiKey = (): string => {
-  const rawApiKey = process.env.API_KEY;
-  if (rawApiKey === undefined || rawApiKey === null || String(rawApiKey).trim() === '' || String(rawApiKey) === 'undefined') {
-    return ''; // Return an empty string for any problematic values, including the string literal "undefined"
-  }
-  return rawApiKey;
-};
 
 @Component({
   selector: 'app-video-editor',
@@ -21,6 +12,8 @@ const getApiKey = (): string => {
 export class VideoEditorComponent implements OnDestroy {
   // FIX: Changed @input() decorator to input() function for class fields
   imageForVideoGeneration = input<string | null>(null);
+  // NEW: Input for initial prompt
+  initialPrompt = input<string | null>(null);
 
   // State for recording
   mediaStream = signal<MediaStream | null>(null);
@@ -36,6 +29,7 @@ export class VideoEditorComponent implements OnDestroy {
   generatedVideoUrl = signal<string | null>(null);
   isGeneratingVideo = signal(false);
   generationProgressMessage = signal<string | null>(null);
+  isAiAvailable = signal(true); // NEW: Signal to track AI service availability
 
   // General UI state
   error = signal<string | null>(null);
@@ -47,11 +41,34 @@ export class VideoEditorComponent implements OnDestroy {
   private mediaRecorder: MediaRecorder | null = null;
   private recordedChunks: Blob[] = [];
   private recordingIntervalId?: number;
-  private genAI: GoogleGenAI; // Use direct GoogleGenAI
+  private genAI?: GoogleGenAI; // Use direct GoogleGenAI, make optional
 
   constructor() {
-    const apiKey = getApiKey();
-    this.genAI = new GoogleGenAI({ apiKey }); // Use direct GoogleGenAI and ensure API key is a string
+    try {
+      this.genAI = new GoogleGenAI({ apiKey: this.getSanitizedApiKey() });
+    } catch (e) {
+      console.error("Fatal: Failed to initialize GoogleGenAI. AI features will be disabled.", e);
+      this.isAiAvailable.set(false);
+      this.error.set('AI services are unavailable due to a configuration error.');
+    }
+
+    // Effect to update videoPrompt when initialPrompt changes (e.g., from chatbot)
+    effect(() => {
+      const prompt = this.initialPrompt();
+      if (prompt && prompt !== this.videoPrompt()) {
+        this.videoPrompt.set(prompt);
+      }
+    });
+  }
+
+  private getSanitizedApiKey(): string {
+    const apiKey = process.env.API_KEY;
+    // If the key is the literal string "undefined", or the actual undefined value,
+    // return an empty string to prevent JSON parsing errors and allow graceful failure.
+    if (apiKey === 'undefined' || apiKey === undefined) {
+      return '';
+    }
+    return apiKey;
   }
 
   ngOnDestroy(): void {
@@ -170,6 +187,10 @@ export class VideoEditorComponent implements OnDestroy {
   // --- AI Video Generation ---
 
   async generateVideo(fromImage: boolean): Promise<void> {
+    if (!this.isAiAvailable() || !this.genAI) {
+      this.error.set('AI features are unavailable. Please check your configuration.');
+      return;
+    }
     const prompt = this.videoPrompt().trim();
     if (!prompt) {
       this.error.set('Please enter a prompt for video generation.');
@@ -222,7 +243,7 @@ export class VideoEditorComponent implements OnDestroy {
       if (downloadLink) {
         this.generationProgressMessage.set('Video generated! Fetching video data...');
         // Append API key when fetching from the download link
-        const videoResponse = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+        const videoResponse = await fetch(`${downloadLink}&key=${this.getSanitizedApiKey()}`);
         if (!videoResponse.ok) {
           throw new Error(`Failed to fetch generated video: ${videoResponse.statusText}`);
         }

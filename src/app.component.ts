@@ -1,4 +1,3 @@
-
 import { Component, ChangeDetectionStrategy, signal, ElementRef, viewChild, effect, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { EqPanelComponent } from './components/eq-panel/eq-panel.component';
@@ -7,6 +6,7 @@ import { DrumMachineComponent } from './components/drum-machine/drum-machine.com
 import { ChatbotComponent } from './components/chatbot/chatbot.component';
 import { ImageEditorComponent } from './components/image-editor/image-editor.component';
 import { VideoEditorComponent } from './components/video-editor/video-editor.component'; // NEW: Import VideoEditorComponent
+import { AudioVisualizerComponent } from './components/audio-visualizer/audio-visualizer.component'; // NEW: Import AudioVisualizerComponent
 
 export interface Track {
   title: string;
@@ -39,6 +39,7 @@ export interface DeckState {
   eqMid: number;
   eqLow: number;
   drumInputVolume: number; // New for routed drum machine
+  wasPlayingBeforeScratch?: boolean; // NEW: To restore play state after scratch
 }
 
 export const initialDeckState: DeckState = {
@@ -59,12 +60,15 @@ export const initialDeckState: DeckState = {
   eqMid: 50, // 0-100
   eqLow: 50, // 0-100
   drumInputVolume: 0, // Default to off
+  wasPlayingBeforeScratch: false,
 };
 
 type ScratchState = {
   active: boolean;
   lastAngle: number;
   platterElement: HTMLElement | null;
+  initialTouchX?: number; // NEW
+  initialTouchY?: number; // NEW
 };
 
 // New: Theme interface and predefined themes
@@ -90,7 +94,7 @@ const THEMES: AppTheme[] = [
   templateUrl: './app.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   // Removed standalone: true as it's default in Angular v20+
-  imports: [CommonModule, EqPanelComponent, MatrixBackgroundComponent, DrumMachineComponent, ChatbotComponent, ImageEditorComponent, VideoEditorComponent], // NEW: Add VideoEditorComponent
+  imports: [CommonModule, EqPanelComponent, MatrixBackgroundComponent, DrumMachineComponent, ChatbotComponent, ImageEditorComponent, VideoEditorComponent, AudioVisualizerComponent], // NEW: Add VideoEditorComponent, AudioVisualizerComponent
   host: {
     // Moved host listeners from @HostListener decorators to the host object
     '(window:mousemove)': 'onScratch($event)',
@@ -108,7 +112,7 @@ export class AppComponent implements OnDestroy {
 
   // App mode
   mainViewMode = signal<'player' | 'dj' | 'drum' | 'image-editor' | 'video-editor'>('player'); // NEW: Added video-editor
-  showChatbot = signal(true); // NEW: Chatbot is a modal, starts open
+  showChatbot = signal(false); // NEW: Chatbot is a modal, starts open for initial greeting
 
   // DJ State
   deckA = signal<DeckState>({ ...initialDeckState });
@@ -199,13 +203,20 @@ export class AppComponent implements OnDestroy {
 
   // NEW: Store last selected image URL from image editor
   lastImageEditorImageUrl = signal<string | null>(null);
+  showApplyAlbumArtModal = signal(false); // NEW: For applying image from editor
 
+  // NEW: Initial prompts for AI editors (from chatbot commands)
+  imageEditorInitialPrompt = signal<string | null>(null);
+  videoEditorInitialPrompt = signal<string | null>(null);
+
+  // NEW: Application-wide error signal
+  appError = signal<string | null>(null);
 
   // Web Audio API properties
   private audioContext?: AudioContext;
   private sourceA?: MediaElementAudioSourceNode; private trimNodeA?: GainNode; private eqHighNodeA?: BiquadFilterNode; private eqMidNodeA?: BiquadFilterNode; private eqLowNodeA?: BiquadFilterNode; private filterNodeA?: BiquadFilterNode; private gainNodeA?: GainNode; private analyserA?: AnalyserNode;
   private sourceB?: MediaElementAudioSourceNode; private trimNodeB?: GainNode; private eqHighNodeB?: BiquadFilterNode; private eqMidNodeB?: BiquadFilterNode; private eqLowNodeB?: BiquadFilterNode; private filterNodeB?: BiquadFilterNode; private gainNodeB?: GainNode; private analyserB?: AnalyserNode;
-  private masterBus?: GainNode; private analyserMaster?: AnalyserNode;
+  private masterBus?: GainNode; private analyserMaster?: AnalyserNode; // Made analyserMaster public for visualizer
   private eqNodes: BiquadFilterNode[] = [];
   private bassBoostNode?: BiquadFilterNode;
   private mediaStreamDestination?: MediaStreamAudioDestinationNode;
@@ -459,7 +470,7 @@ export class AppComponent implements OnDestroy {
         currentNode.connect(this.bassBoostNode);
         currentNode = this.bassBoostNode;
       }
-      if (this.analyserMaster) {
+      if (this.analyserMaster) { // NEW: Connect master analyser here for the visualizer
         currentNode.connect(this.analyserMaster);
         currentNode = this.analyserMaster;
       }
@@ -493,7 +504,7 @@ export class AppComponent implements OnDestroy {
     const deck = deckId === 'A' ? this.deckA : this.deckB;
     if (deck().track.audioSrc) {
       this.ensureAudioContext();
-      deck.update(d => ({ ...d, isPlaying: !d.isPlaying }));
+      deck.update(d => ({ ...d, isPlaying: !d.isPlaying, wasPlayingBeforeScratch: !d.isPlaying })); // Store play state
     } else if (this.mainViewMode() === 'player' && this.playlist().length > 0) { // Changed from viewMode()
         this.playTrackFromPlaylist(this.currentTrackIndex() >= 0 ? this.currentTrackIndex() : 0);
     }
@@ -615,7 +626,7 @@ export class AppComponent implements OnDestroy {
   loadTrack(track: Track, deckId: 'A' | 'B', autoplay: boolean): void {
     const deck = deckId === 'A' ? this.deckA : this.deckB;
     this.ensureAudioContext();
-    deck.set({ ...initialDeckState, track, isPlaying: autoplay });
+    deck.set({ ...initialDeckState, track, isPlaying: autoplay, wasPlayingBeforeScratch: autoplay }); // Also set wasPlayingBeforeScratch
   }
 
   loadTrackToDeck(track: Track, deckId: 'A' | 'B'): void {
@@ -644,7 +655,7 @@ export class AppComponent implements OnDestroy {
       this.currentTrackIndex.set(index);
       // Automatically play the track if it's the player mode
       if (this.mainViewMode() === 'player') { // Changed from viewMode()
-        this.deckA.set({ ...initialDeckState, track: playlist[index], isPlaying: true });
+        this.deckA.set({ ...initialDeckState, track: playlist[index], isPlaying: true, wasPlayingBeforeScratch: true });
       }
     } else {
       console.warn('Invalid playlist index provided.');
@@ -762,7 +773,11 @@ export class AppComponent implements OnDestroy {
     this.unrouteDrumMachine('A');
     this.unrouteDrumMachine('B');
 
-    if (!deckId || !stream) return; // Unrouting or no stream
+    if (!deckId || !stream) { // Unrouting or no stream
+      this.isDrumRoutedA.set(false);
+      this.isDrumRoutedB.set(false);
+      return;
+    }
 
     if (deckId === 'A' && this.drumInputSourceA && this.drumInputGainA && this.eqLowNodeA) {
       // Disconnect existing if any and reconnect new stream
@@ -821,11 +836,281 @@ export class AppComponent implements OnDestroy {
     this.ensureAudioContext();
     const isDeckA = deckId === 'A';
     const scratchState = isDeckA ? this.scratchStateA : this.scratchStateB;
-    const platter = (event.currentTarget as HTMLElement);
+    const deckSignal = isDeckA ? this.deckA : this.deckB;
+    const audioPlayer = isDeckA ? this.audioPlayerARef()?.nativeElement : this.audioPlayerBRef()?.nativeElement;
     
-    if ((isDeckA ? this.deckA() : this.deckB()).duration === 0) return;
+    if (deckSignal().duration === 0) return;
     if (isDeckA ? this.isDrumRoutedA() : this.isDrumRoutedB()) return; // Cannot scratch routed drum stream
 
     scratchState.active = true;
-    scratchState.platterElement = platter;
-    (isDeckA ? this
+    scratchState.platterElement = event.currentTarget as HTMLElement;
+    
+    const clientX = (event as MouseEvent).clientX ?? (event as TouchEvent).touches[0].clientX;
+    const clientY = (event as MouseEvent).clientY ?? (event as TouchEvent).touches[0].clientY;
+
+    const rect = scratchState.platterElement.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    scratchState.lastAngle = Math.atan2(clientY - centerY, clientX - centerX);
+    scratchState.initialTouchX = clientX; // Store for smoother initial scratch
+    scratchState.initialTouchY = clientY; // Store for smoother initial scratch
+
+    deckSignal.update(d => ({ ...d, isPlaying: false, wasPlayingBeforeScratch: d.isPlaying })); // Pause, store current playing state
+    if (isDeckA) { this.isScratchingA.set(true); } else { this.isScratchingB.set(true); }
+    if (audioPlayer) audioPlayer.pause();
+  }
+
+  onScratch(event: MouseEvent | TouchEvent): void {
+    if (!this.scratchStateA.active && !this.scratchStateB.active) return;
+    
+    this.ensureAudioContext();
+
+    const clientX = (event as MouseEvent).clientX ?? (event as TouchEvent).touches[0].clientX;
+    const clientY = (event as MouseEvent).clientY ?? (event as TouchEvent).touches[0].clientY;
+
+    const processDeck = (deckId: 'A' | 'B', scratchState: ScratchState, deckSignal: typeof this.deckA, playerRef: typeof this.audioPlayerARef, isScratchingSignal: typeof this.isScratchingA, scratchRotationSignal: typeof this.scratchRotationA) => {
+      if (!scratchState.active || !scratchState.platterElement || !isScratchingSignal()) return;
+
+      const audioPlayer = playerRef()?.nativeElement;
+      if (!audioPlayer || deckSignal().duration === 0) return;
+
+      const rect = scratchState.platterElement.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+
+      const currentAngle = Math.atan2(clientY - centerY, clientX - centerX);
+      let deltaAngle = currentAngle - scratchState.lastAngle;
+
+      // Handle angle wrap-around
+      if (deltaAngle > Math.PI) deltaAngle -= 2 * Math.PI;
+      if (deltaAngle < -Math.PI) deltaAngle += 2 * Math.PI;
+
+      // Adjust playback position based on scratch
+      const audioTimeChange = deltaAngle * this.SCRATCH_SENSITIVITY / (2 * Math.PI); // Convert angle to seconds
+      audioPlayer.currentTime = Math.max(0, Math.min(audioPlayer.duration, audioPlayer.currentTime + audioTimeChange));
+
+      // Update platter rotation for visual feedback
+      // This is a simplified rotation based on relative movement
+      let currentRotation = parseFloat(scratchRotationSignal().replace('rotate(', '').replace('deg)', '') || '0');
+      currentRotation += (deltaAngle * 180 / Math.PI); // Convert radians to degrees
+      scratchRotationSignal.set(`rotate(${currentRotation}deg)`);
+
+      scratchState.lastAngle = currentAngle;
+    };
+
+    processDeck('A', this.scratchStateA, this.deckA, this.audioPlayerARef, this.isScratchingA, this.scratchRotationA);
+    processDeck('B', this.scratchStateB, this.deckB, this.audioPlayerBRef, this.isScratchingB, this.scratchRotationB);
+  }
+
+  onScratchEnd(): void {
+    const restoreDeck = (deckId: 'A' | 'B', scratchState: ScratchState, deckSignal: typeof this.deckA, playerRef: typeof this.audioPlayerARef, videoPlayerRef: typeof this.videoPlayerARef, isScratchingSignal: typeof this.isScratchingA) => {
+      if (scratchState.active) {
+        scratchState.active = false;
+        if (isScratchingSignal()) {
+          isScratchingSignal.set(false);
+          const audioPlayer = playerRef()?.nativeElement;
+          const videoPlayer = videoPlayerRef()?.nativeElement;
+          if (audioPlayer && deckSignal().wasPlayingBeforeScratch) {
+            audioPlayer.play().catch(console.error);
+            if (videoPlayer) videoPlayer.play().catch(console.error);
+          }
+          deckSignal.update(d => ({...d, isPlaying: deckSignal().wasPlayingBeforeScratch})); // Restore play state
+        }
+      }
+    };
+
+    restoreDeck('A', this.scratchStateA, this.deckA, this.audioPlayerARef, this.videoPlayerARef, this.isScratchingA);
+    restoreDeck('B', this.scratchStateB, this.deckB, this.audioPlayerBRef, this.videoPlayerBRef, this.isScratchingB);
+  }
+
+  // NEW: Microphone Controls
+  async toggleMicrophone(): Promise<void> {
+    this.ensureAudioContext();
+    if (!this.audioContext) {
+      this.micEnabled.set(false);
+      // FIX: Use the newly added `appError` signal instead of `this.error`
+      this.appError.set("AudioContext not initialized.");
+      return;
+    }
+
+    if (this.micEnabled()) {
+      // Disable microphone
+      this.micStream?.getTracks().forEach(track => track.stop());
+      this.micStream = undefined;
+      this.micSourceNode?.disconnect();
+      this.micSourceNode = undefined;
+      this.micGainNode?.disconnect(); // Disconnect chain from master bus
+      this.micEqLowNode?.disconnect();
+      this.micEqMidNode?.disconnect();
+      this.micEqHighNode?.disconnect();
+      this.micFilterNode?.disconnect();
+      this.micAnalyser?.disconnect();
+
+      this.micEnabled.set(false);
+      this.vuLevelMic.set(0); // Reset VU meter
+      console.log('Microphone disabled.');
+    } else {
+      // Enable microphone
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this.micStream = stream;
+        this.micSourceNode = this.audioContext.createMediaStreamSource(stream);
+
+        // Connect mic chain
+        this.micSourceNode.connect(this.micGainNode!);
+        this.micGainNode!.connect(this.micEqLowNode!);
+        this.micEqLowNode!.connect(this.micEqMidNode!);
+        this.micEqMidNode!.connect(this.micEqHighNode!);
+        this.micEqHighNode!.connect(this.micFilterNode!);
+        this.micFilterNode!.connect(this.micAnalyser!); // Connect to analyser for VU
+        this.micAnalyser!.connect(this.masterBus!); // Connect to master output
+
+        this.micEnabled.set(true);
+        console.log('Microphone enabled.');
+      } catch (err) {
+        console.error('Error enabling microphone:', err);
+        this.micEnabled.set(false);
+        alert('Could not enable microphone. Please ensure microphone permissions are granted.');
+      }
+    }
+  }
+
+  onMicVolumeChange(event: Event): void {
+    this.micVolume.set(parseInt((event.target as HTMLInputElement).value, 10));
+  }
+
+  onMicEqChange(event: Event, band: 'High' | 'Mid' | 'Low'): void {
+    const value = parseInt((event.target as HTMLInputElement).value, 10);
+    if (band === 'High') { this.micEqHigh.set(value); }
+    else if (band === 'Mid') { this.micEqMid.set(value); }
+    else if (band === 'Low') { this.micEqLow.set(value); }
+  }
+
+  onMicFilterChange(event: Event): void {
+    const value = parseFloat((event.target as HTMLInputElement).value); // 0 to 1
+    const freq = 20 * Math.pow(20000 / 20, value); // Logarithmic scale for frequency
+    this.micFilterFreq.set(freq);
+  }
+
+  // NEW: Handle commands from chatbot
+  handleChatbotCommand(command: { action: string; parameters: any }): void {
+    console.log("Received command from chatbot:", command);
+    const { action, parameters } = command;
+
+    switch (action) {
+      case 'addTrackToPlaylist':
+        const newTrack: Track = {
+          title: parameters.title || 'Unknown Title',
+          artist: parameters.artist || 'Unknown Artist',
+          albumArtUrl: parameters.albumArtUrl || 'https://picsum.photos/seed/ai-generated/500/500',
+          audioSrc: parameters.audioSrc || 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-9.mp3', // Default generic audio
+        };
+        this.addTrackToPlaylist(newTrack, true);
+        break;
+      case 'playTrackInPlayer':
+        if (parameters.title) {
+          const index = this.playlist().findIndex(t => t.title.toLowerCase() === parameters.title.toLowerCase());
+          if (index !== -1) this.playTrackFromPlaylist(index); else alert(`Track "${parameters.title}" not found.`);
+        } else if (parameters.index !== undefined) {
+          this.playTrackFromPlaylist(parameters.index);
+        } else {
+          alert('Specify track by title or index to play.');
+        }
+        break;
+      case 'removeTrackFromPlaylist':
+        this.removeTrackFromPlaylist(parameters);
+        break;
+      case 'changeTheme':
+        const themeName = parameters.name;
+        const targetTheme = this.THEMES.find(t => t.name.toLowerCase() === themeName.toLowerCase());
+        if (targetTheme) {
+          this.currentTheme.set(targetTheme);
+          alert(`Theme changed to ${targetTheme.name}!`);
+        } else {
+          alert(`Theme "${themeName}" not found. Available themes: ${this.THEMES.map(t => t.name).join(', ')}`);
+        }
+        break;
+      case 'randomizeTheme':
+        this.randomizeTheme();
+        alert('Theme randomized!');
+        break;
+      case 'generateImage':
+        this.imageEditorInitialPrompt.set(parameters.prompt || '');
+        this.mainViewMode.set('image-editor');
+        alert('Switched to Image Editor. Prompt pre-filled, click GENERATE to create your image.');
+        break;
+      case 'generateVideo':
+        this.videoEditorInitialPrompt.set(parameters.prompt || '');
+        // Determine if image should be used for video generation based on 'fromImage' parameter
+        // The VideoEditorComponent's internal logic will handle the imageForVideoGeneration input.
+        this.mainViewMode.set('video-editor');
+        alert('Switched to Video Editor. Prompt pre-filled, click GENERATE to create your video.');
+        break;
+      default:
+        console.warn(`Unknown command: ${action}`);
+        alert(`S.M.U.V.E tried to execute an unknown command: ${action}`);
+    }
+  }
+
+  // NEW: Randomize theme
+  randomizeTheme(): void {
+    let newTheme: AppTheme;
+    do {
+      const randomIndex = Math.floor(Math.random() * this.THEMES.length);
+      newTheme = this.THEMES[randomIndex];
+    } while (newTheme === this.currentTheme()); // Ensure a different theme is selected
+    this.currentTheme.set(newTheme);
+  }
+
+  // NEW: Handle image selected from image editor
+  handleImageSelectedForAlbumArt(imageUrl: string): void {
+    this.lastImageEditorImageUrl.set(imageUrl);
+    this.showApplyAlbumArtModal.set(true); // Show modal for selection
+    this.mainViewMode.set('player'); // Switch back to player mode for context
+  }
+
+  // NEW: Apply the selected image as album art to the chosen target
+  applyImageAsAlbumArt(target: 'player' | 'A' | 'B'): void {
+    const imageUrl = this.lastImageEditorImageUrl();
+    if (!imageUrl) {
+      alert('No image available to apply!');
+      this.showApplyAlbumArtModal.set(false);
+      return;
+    }
+
+    if (target === 'player') {
+      if (this.currentPlayerTrack()) {
+        const currentTrackIndex = this.currentTrackIndex();
+        this.playlist.update(currentPlaylist => {
+          const updatedPlaylist = [...currentPlaylist];
+          updatedPlaylist[currentTrackIndex] = { ...updatedPlaylist[currentTrackIndex], albumArtUrl: imageUrl };
+          return updatedPlaylist;
+        });
+        // Also update deckA if it's currently showing this track
+        this.deckA.update(deck => {
+          if (deck.track === this.currentPlayerTrack()) { // Check for reference equality
+            return { ...deck, track: { ...deck.track, albumArtUrl: imageUrl } };
+          }
+          return deck;
+        });
+        alert('Album art applied to current player track!');
+      } else {
+        alert('No track currently playing in player mode.');
+      }
+    } else if (target === 'A') {
+      this.deckA.update(deck => ({ ...deck, track: { ...deck.track, albumArtUrl: imageUrl } }));
+      alert('Album art applied to Deck A!');
+    } else if (target === 'B') {
+      this.deckB.update(deck => ({ ...deck, track: { ...deck.track, albumArtUrl: imageUrl } }));
+      alert('Album art applied to Deck B!');
+    }
+    this.showApplyAlbumArtModal.set(false);
+    this.lastImageEditorImageUrl.set(null); // Clear after use
+  }
+
+  // Helper to get master analyser for visualizer
+  getMasterAnalyser(): AnalyserNode | undefined {
+    return this.analyserMaster;
+  }
+}

@@ -1,7 +1,3 @@
-
-
-
-
 <div class="w-full text-neutral-200 p-4 bg-purple-900/50 border border-purple-500/30 flex flex-col gap-4 relative min-h-[600px]">
   <h2 class="text-center text-lg text-purple-400">[ AURA IMAGE LAB ]</h2>
 
@@ -29,12 +25,12 @@
         placeholder="e.g., 'Add a retro filter', 'Remove the person in the background', 'Make it look like a sci-fi landscape'" 
         rows="4" 
         class="w-full bg-purple-800/50 border border-purple-500/50 text-neutral-200 p-2 text-sm focus:ring-purple-500 focus:border-purple-500 resize-y"
-        [disabled]="!originalImageUrl() || isLoading()"></textarea>
+        [disabled]="isLoading() || !isAiAvailable()"></textarea>
       
       <div class="flex gap-2">
         <button (click)="generateImage()" 
           class="flex-grow px-4 py-2 border-2 border-purple-500 bg-purple-800 text-purple-300 hover:bg-purple-500 hover:text-black text-lg"
-          [disabled]="!originalImageUrl() || !editPrompt() || isLoading()">
+          [disabled]="!editPrompt() || isLoading() || !isAiAvailable()">
           @if (isLoading()) {
             <span>[ GENERATING... ]</span>
           } @else {

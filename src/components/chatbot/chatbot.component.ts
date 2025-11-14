@@ -1,4 +1,3 @@
-
 import { Component, ChangeDetectionStrategy, signal, output, ElementRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GoogleGenAI, Chat, GenerateContentResponse, Type, GenerateContentParameters } from "@google/genai"; // Changed to direct named import
@@ -51,15 +50,6 @@ interface ChatMessage {
   urls?: { uri: string; title?: string }[]; // New: Optional field for grounding URLs
 }
 
-const getApiKey = (): string => {
-  const rawApiKey = process.env.API_KEY;
-  // Explicitly check for the string literal "undefined"
-  if (rawApiKey === undefined || rawApiKey === null || String(rawApiKey).trim() === '' || String(rawApiKey) === 'undefined') {
-    return ''; // Return an empty string for any problematic values, including the string literal "undefined"
-  }
-  return rawApiKey;
-};
-
 @Component({
   selector: 'app-chatbot',
   templateUrl: './chatbot.component.html',
@@ -77,25 +67,26 @@ export class ChatbotComponent {
   isVoiceInputActive = signal(false); // NEW: Signal for voice input
   isSpeaking = signal(false); // NEW: Signal if the chatbot is speaking
   isDeepQueryActive = signal(false); // NEW: Signal for deep query mode
+  isAiAvailable = signal(true); // NEW: Signal to track AI service availability
 
   chatHistoryRef = viewChild<ElementRef<HTMLDivElement>>('chatHistory');
 
-  private genAI: GoogleGenAI; // Use direct GoogleGenAI
-  private chatInstance: Chat; // For gemini-2.5-flash
+  private genAI?: GoogleGenAI; // Use direct GoogleGenAI, make optional
+  private chatInstance?: Chat; // For gemini-2.5-flash, make optional
   private speechRecognition: SpeechRecognition | null = null; // NEW: SpeechRecognition instance
   private speechUtterance: SpeechSynthesisUtterance | null = null; // NEW: SpeechSynthesisUtterance instance
 
   constructor() {
-    const apiKey = getApiKey();
-    this.genAI = new GoogleGenAI({ apiKey }); // Use direct GoogleGenAI and ensure API key is a string
-    this.chatInstance = this.genAI.chats.create({
-      model: 'gemini-2.5-flash',
-      config: {
-        systemInstruction: `You are S.M.U.V.E (Strategic Music Uplift & Vision Engine), an expert AI in music management, marketing, promotion, and song creation. You provide detailed recommendations, tips, and insights. You can also answer general questions about music, artists, and industry trends. When asked for information that requires up-to-date knowledge (e.g., recent events, current charts), the user may explicitly ask you to "Search Google for..." or "Google for..." a topic.
+    try {
+      this.genAI = new GoogleGenAI({ apiKey: this.getSanitizedApiKey() });
+      this.chatInstance = this.genAI.chats.create({
+        model: 'gemini-2.5-flash',
+        config: {
+          systemInstruction: `You are S.M.U.V.E (Strategic Music Uplift & Vision Engine), an expert AI in music management, marketing, promotion, and song creation. You provide detailed recommendations, tips, and insights. You can also answer general questions about music, artists, and industry trends. When asked for information that requires up-to-date knowledge (e.g., recent events, current charts), the user may explicitly ask you to "Search Google for..." or "Google for..." a topic.
 
 Your responses should be enthusiastic, helpful, and concise.
 
-You can also control the user's music application. If the user explicitly asks you to perform an action related to music, like "add a track", "play a song", or "remove from playlist", you MUST respond in the following format, and nothing else:
+You can also control the user's music application. If the user explicitly asks you to perform an action related to music, like "add a track", "play a song", "remove from playlist", "change theme", "randomize theme", "generate an image", or "generate a video", you MUST respond in the following format, and nothing else:
 COMMAND:::[ACTION_NAME]:::key='value';key2='value'
 
 Otherwise, for general chat, respond in the following format:
@@ -108,17 +99,37 @@ Here are the available actions and their parameters (as a key-value string for t
   - **PARAMETERS**: \`index='1'\` OR \`title='...'\`
 - **ACTION**: \`removeTrackFromPlaylist\`
   - **PARAMETERS**: \`index='0'\` OR \`title='...'\`
+- **ACTION**: \`changeTheme\`
+  - **PARAMETERS**: \`name='Green Vintage'\` (Available: Green Vintage, Blue Retro, Red Glitch, Amber Glow, Purple Haze, Cyan Wave, Yellow Neon)
+- **ACTION**: \`randomizeTheme\`
+  - **PARAMETERS**: (No parameters)
+- **ACTION**: \`generateImage\`
+  - **PARAMETERS**: \`prompt='A vibrant abstract painting for an album cover'\`
+- **ACTION**: \`generateVideo\`
+  - **PARAMETERS**: \`prompt='A looping animation of a digital equalizer';fromImage='true'\` (fromImage is optional, defaults to false)
 
 Prioritize using 'title' for track identification if provided. If an index is provided, use that.
 
 EXAMPLE USER PROMPT: "Add a new track named 'My New Song' by 'The AI Artist' to my playlist."
 EXAMPLE RESPONSE: COMMAND:::addTrackToPlaylist:::title='My New Song';artist='The AI Artist'
 
+EXAMPLE USER PROMPT: "Change theme to Amber Glow."
+EXAMPLE RESPONSE: COMMAND:::changeTheme:::name='Amber Glow'
+
+EXAMPLE USER PROMPT: "Generate an image of a cybernetic DJ booth."
+EXAMPLE RESPONSE: COMMAND:::generateImage:::prompt='A cybernetic DJ booth'
+
 EXAMPLE USER PROMPT: "What's the best way to promote a new single?"
 EXAMPLE RESPONSE: CHAT:::The best way to promote a new single involves a multi-pronged approach. First, you should build a strong social media presence...
 `,
-      },
-    });
+        },
+      });
+    } catch (e) {
+      console.error("Fatal: Failed to initialize GoogleGenAI. AI features will be disabled.", e);
+      this.isAiAvailable.set(false);
+      this.messages.update(msgs => [...msgs, { role: 'model', content: 'AI services are currently unavailable due to a configuration error. Please check your API key.' }]);
+    }
+
 
     // NEW: Initialize SpeechRecognition
     if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
@@ -152,7 +163,18 @@ EXAMPLE RESPONSE: CHAT:::The best way to promote a new single involves a multi-p
     }
   }
 
+  private getSanitizedApiKey(): string {
+    const apiKey = process.env.API_KEY;
+    // If the key is the literal string "undefined", or the actual undefined value,
+    // return an empty string to prevent JSON parsing errors and allow graceful failure.
+    if (apiKey === 'undefined' || apiKey === undefined) {
+      return '';
+    }
+    return apiKey;
+  }
+
   async sendMessage(): Promise<void> {
+    if (!this.isAiAvailable() || !this.chatInstance) return;
     const message = this.userMessage().trim();
     if (!message) return;
 
@@ -237,8 +259,7 @@ EXAMPLE RESPONSE: CHAT:::The best way to promote a new single involves a multi-p
 
   // NEW: Method for Google Search Grounding
   private async sendGoogleSearchQuery(query: string): Promise<void> {
-    const apiKey = getApiKey();
-    const ai = new GoogleGenAI({ apiKey }); // Ensure API key is a string
+    if (!this.isAiAvailable() || !this.genAI) return;
     try {
       // Create a GenerateContentParameters object
       const generateContentParameters: GenerateContentParameters = {
@@ -250,7 +271,7 @@ EXAMPLE RESPONSE: CHAT:::The best way to promote a new single involves a multi-p
         },
       };
 
-      const response: GenerateContentResponse = await ai.models.generateContent(generateContentParameters);
+      const response: GenerateContentResponse = await this.genAI.models.generateContent(generateContentParameters);
       const aiResponseText = response.text;
 
       // Extract grounding chunks for URLs
@@ -281,10 +302,9 @@ EXAMPLE RESPONSE: CHAT:::The best way to promote a new single involves a multi-p
 
   // NEW: Method for Deep Query (gemini-2.5-pro with thinking budget)
   async sendDeepQuery(message: string): Promise<void> {
-    const apiKey = getApiKey();
-    const ai = new GoogleGenAI({ apiKey }); // Ensure API key is a string
+    if (!this.isAiAvailable() || !this.genAI) return;
     try {
-      const response: GenerateContentResponse = await ai.models.generateContent({
+      const response: GenerateContentResponse = await this.genAI.models.generateContent({
         model: "gemini-2.5-flash", // Changed to gemini-2.5-flash as gemini-2.5-pro is deprecated.
         contents: [{ text: message }],
         config: {

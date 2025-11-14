@@ -1,15 +1,6 @@
-
-import { Component, ChangeDetectionStrategy, signal, ElementRef, viewChild, output } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, ElementRef, viewChild, output, input, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GoogleGenAI } from '@google/genai'; // Changed to direct named import
-
-const getApiKey = (): string => {
-  const rawApiKey = process.env.API_KEY;
-  if (rawApiKey === undefined || rawApiKey === null || String(rawApiKey).trim() === '' || String(rawApiKey) === 'undefined') {
-    return ''; // Return an empty string for any problematic values, including the string literal "undefined"
-  }
-  return rawApiKey;
-};
 
 @Component({
   selector: 'app-image-editor',
@@ -19,21 +10,48 @@ const getApiKey = (): string => {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ImageEditorComponent {
+  // NEW: Input for initial prompt
+  initialPrompt = input<string | null>(null);
+
   originalImageUrl = signal<string | null>(null);
   editPrompt = signal('');
   generatedImageUrls = signal<string[]>([]);
   isLoading = signal(false);
   errorMessage = signal<string | null>(null);
+  isAiAvailable = signal(true); // NEW: Signal to track AI service availability
 
   fileInputRef = viewChild<ElementRef<HTMLInputElement>>('fileInput');
 
   imageSelected = output<string>(); // NEW: Output for selected image URL
 
-  private genAI: GoogleGenAI; // Use direct GoogleGenAI
+  private genAI?: GoogleGenAI; // Use direct GoogleGenAI, make optional
 
   constructor() {
-    const apiKey = getApiKey();
-    this.genAI = new GoogleGenAI({ apiKey }); // Use direct GoogleGenAI and ensure API key is a string
+    try {
+      this.genAI = new GoogleGenAI({ apiKey: this.getSanitizedApiKey() });
+    } catch (e) {
+      console.error("Fatal: Failed to initialize GoogleGenAI. AI features will be disabled.", e);
+      this.isAiAvailable.set(false);
+      this.errorMessage.set('AI services are unavailable due to a configuration error.');
+    }
+    
+    // Effect to update editPrompt when initialPrompt changes (e.g., from chatbot)
+    effect(() => {
+      const prompt = this.initialPrompt();
+      if (prompt && prompt !== this.editPrompt()) {
+        this.editPrompt.set(prompt);
+      }
+    });
+  }
+
+  private getSanitizedApiKey(): string {
+    const apiKey = process.env.API_KEY;
+    // If the key is the literal string "undefined", or the actual undefined value,
+    // return an empty string to prevent JSON parsing errors and allow graceful failure.
+    if (apiKey === 'undefined' || apiKey === undefined) {
+      return '';
+    }
+    return apiKey;
   }
 
   handleImageUpload(event: Event): void {
@@ -56,6 +74,10 @@ export class ImageEditorComponent {
   }
 
   async generateImage(): Promise<void> {
+    if (!this.isAiAvailable() || !this.genAI) {
+      this.errorMessage.set('AI features are unavailable. Please check your configuration.');
+      return;
+    }
     const imageUrl = this.originalImageUrl();
     const prompt = this.editPrompt().trim();
 
@@ -116,7 +138,7 @@ export class ImageEditorComponent {
     
     if (urlToEmit) {
       this.imageSelected.emit(urlToEmit);
-      alert('Image sent to main player for potential album art use!');
+      // Removed the alert here, parent will handle feedback via modal
     } else {
       this.errorMessage.set('No image to use as album art.');
     }

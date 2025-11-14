@@ -1,7 +1,3 @@
-
-
-
-
 import { Component, ChangeDetectionStrategy, signal, OnDestroy, AfterViewInit, output, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 // FIX: Correctly import 'kits' and 'SAMPLE_LIBRARY' which are now exported from 'samples.ts'.
@@ -53,7 +49,6 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
 
   // Outputs for routing
   routeToDeck = output<{ stream: MediaStream, deckId: 'A' | 'B' | null }>();
-  unrouteDeck = output<'A' | 'B'>(); // For explicit unrouting
 
   // Visuals
   litPads = signal<Set<number>>(new Set());
@@ -359,25 +354,32 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
     alert('Export as WAV functionality is not yet implemented.');
   }
 
-  routeDrumToDeck(deckId: 'A' | 'B'): void {
-    this.toggleRouteToDeck(deckId);
-  }
-
-  unrouteDrum(deckId: 'A' | 'B'): void { // parameter unused, but exists in template call
-    this.routeToDeck.emit({ stream: this.mediaStreamDestinationNode!.stream, deckId: null });
+  // NEW: Method to unroute drum machine from all decks
+  unrouteAllDrums(): void {
+    if (this.mediaStreamDestinationNode) {
+      this.routeToDeck.emit({ stream: this.mediaStreamDestinationNode.stream, deckId: null });
+    }
   }
 
   // --- Routing Logic ---
   async toggleRouteToDeck(deckId: 'A' | 'B'): Promise<void> {
     await this.initAudio();
-    const isCurrentlyRouted = deckId === 'A' ? this.isDrumRoutedA() : this.isDrumRoutedB();
-    
-    if (isCurrentlyRouted) {
-      // Unroute from this deck (unroutes all in parent)
-      this.routeToDeck.emit({ stream: this.mediaStreamDestinationNode!.stream, deckId: null });
+    if (!this.mediaStreamDestinationNode) {
+      console.error("MediaStreamDestinationNode not initialized.");
+      return;
+    }
+
+    const isCurrentlyRoutedA = this.isDrumRoutedA();
+    const isCurrentlyRoutedB = this.isDrumRoutedB();
+
+    // If attempting to route to a deck that is already routed, unroute it.
+    // If attempting to route to a new deck, unroute all currently routed and then route to the new one.
+    if ((deckId === 'A' && isCurrentlyRoutedA) || (deckId === 'B' && isCurrentlyRoutedB)) {
+      // If the target deck is already routed, unroute all
+      this.routeToDeck.emit({ stream: this.mediaStreamDestinationNode.stream, deckId: null });
     } else {
-      // Route to this deck (and unroute from the other if necessary)
-      this.routeToDeck.emit({ stream: this.mediaStreamDestinationNode!.stream, deckId });
+      // If routing to a new deck, or if nothing is currently routed
+      this.routeToDeck.emit({ stream: this.mediaStreamDestinationNode.stream, deckId });
     }
   }
 }

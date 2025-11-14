@@ -1,7 +1,3 @@
-
-
-
-
 <div class="w-full text-neutral-200 p-4 bg-stone-900/50 border border-amber-500/30 flex flex-col gap-4 relative">
   <h2 class="text-center text-lg text-amber-400">[ AURA BEAT STATION ]</h2>
 
@@ -39,12 +35,12 @@
     </div>
     <div class="flex gap-2 items-center">
       <span class="text-xs text-neutral-400">ROUTE TO DJ:</span>
-      <button (click)="routeDrumToDeck('A')" class="px-3 py-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black"
+      <button (click)="toggleRouteToDeck('A')" class="px-3 py-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black"
         [class.bg-amber-500]="isDrumRoutedA()" [class.text-black]="isDrumRoutedA()">[ A ]</button>
-      <button (click)="routeDrumToDeck('B')" class="px-3 py-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black"
+      <button (click)="toggleRouteToDeck('B')" class="px-3 py-1 border border-amber-500/50 hover:bg-amber-500 hover:text-black"
         [class.bg-amber-500]="isDrumRoutedB()" [class.text-black]="isDrumRoutedB()">[ B ]</button>
       @if (isDrumRoutedA() || isDrumRoutedB()) {
-        <button (click)="unrouteDrum('A')" class="px-3 py-1 border border-red-500/50 hover:bg-red-500 hover:text-black text-red-300">[ UNROUTE ]</button>
+        <button (click)="unrouteAllDrums()" class="px-3 py-1 border border-red-500/50 hover:bg-red-500 hover:text-black text-red-300">[ UNROUTE ALL ]</button>
       }
     </div>
   </div>

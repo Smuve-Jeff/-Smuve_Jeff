@@ -77,12 +77,14 @@ export class ChatbotComponent {
   private speechUtterance: SpeechSynthesisUtterance | null = null; // NEW: SpeechSynthesisUtterance instance
 
   constructor() {
-    try {
-      this.genAI = new GoogleGenAI({ apiKey: this.getSanitizedApiKey() });
-      this.chatInstance = this.genAI.chats.create({
-        model: 'gemini-2.5-flash',
-        config: {
-          systemInstruction: `You are S.M.U.V.E (Strategic Music Uplift & Vision Engine), an expert AI in music management, marketing, promotion, and song creation. You provide detailed recommendations, tips, and insights. You can also answer general questions about music, artists, and industry trends. When asked for information that requires up-to-date knowledge (e.g., recent events, current charts), the user may explicitly ask you to "Search Google for..." or "Google for..." a topic.
+    const apiKey = this.getSanitizedApiKey();
+    if (apiKey) {
+       try {
+        this.genAI = new GoogleGenAI({ apiKey });
+        this.chatInstance = this.genAI.chats.create({
+          model: 'gemini-2.5-flash',
+          config: {
+            systemInstruction: `You are S.M.U.V.E (Strategic Music Uplift & Vision Engine), an expert AI in music management, marketing, promotion, and song creation. You provide detailed recommendations, tips, and insights. You can also answer general questions about music, artists, and industry trends. When asked for information that requires up-to-date knowledge (e.g., recent events, current charts), the user may explicitly ask you to "Search Google for..." or "Google for..." a topic.
 
 Your responses should be enthusiastic, helpful, and concise.
 
@@ -122,12 +124,17 @@ EXAMPLE RESPONSE: COMMAND:::generateImage:::prompt='A cybernetic DJ booth'
 EXAMPLE USER PROMPT: "What's the best way to promote a new single?"
 EXAMPLE RESPONSE: CHAT:::The best way to promote a new single involves a multi-pronged approach. First, you should build a strong social media presence...
 `,
-        },
-      });
-    } catch (e) {
-      console.error("Fatal: Failed to initialize GoogleGenAI. AI features will be disabled.", e);
-      this.isAiAvailable.set(false);
-      this.messages.update(msgs => [...msgs, { role: 'model', content: 'AI services are currently unavailable due to a configuration error. Please check your API key.' }]);
+          },
+        });
+      } catch (e) {
+        console.error("Fatal: Failed to initialize GoogleGenAI. AI features will be disabled.", e);
+        this.isAiAvailable.set(false);
+        this.messages.update(msgs => [...msgs, { role: 'model', content: 'AI services are currently unavailable due to a configuration error. Please check your API key.' }]);
+      }
+    } else {
+        console.warn("Google GenAI API key is not available. AI features will be disabled.");
+        this.isAiAvailable.set(false);
+        this.messages.update(msgs => [...msgs, { role: 'model', content: 'AI services are currently unavailable. An API key is required.' }]);
     }
 
 
@@ -163,14 +170,45 @@ EXAMPLE RESPONSE: CHAT:::The best way to promote a new single involves a multi-p
     }
   }
 
-  private getSanitizedApiKey(): string {
-    const apiKey = process.env.API_KEY;
-    // If the key is the literal string "undefined", or the actual undefined value,
-    // return an empty string to prevent JSON parsing errors and allow graceful failure.
-    if (apiKey === 'undefined' || apiKey === undefined) {
-      return '';
+  private getSanitizedApiKey(): string | null {
+    // Defensive check for process and process.env existence
+    if (typeof process === 'undefined' || !process.env) {
+      console.warn("API_KEY: 'process' or 'process.env' is not available in this environment.");
+      return null;
     }
-    return apiKey;
+
+    const rawApiKey = process.env.API_KEY;
+
+    // 1. Must be a string. Handles null, undefined, numbers, etc.
+    if (typeof rawApiKey !== 'string') {
+      console.warn(`API_KEY: Received non-string type: ${typeof rawApiKey}. Expected string.`);
+      return null;
+    }
+    
+    const trimmedApiKey = rawApiKey.trim();
+
+    // 2. Check for empty string after trimming
+    if (trimmedApiKey === '') {
+      console.warn("API_KEY: Received an empty string after trimming. API key is required.");
+      return null;
+    }
+
+    // 3. Check for common placeholder strings (case-insensitive)
+    const lowercasedKey = trimmedApiKey.toLowerCase();
+    if (lowercasedKey === 'undefined' || lowercasedKey === 'null' || lowercasedKey === '[api_key]' || lowercasedKey === 'your_api_key') {
+      console.warn(`API_KEY: Received a common placeholder string: '${trimmedApiKey}'. API key is not set.`);
+      return null;
+    }
+
+    // 4. Heuristic length check: real Gemini API keys are typically ~39 characters.
+    // A minimum length of 30 is a reasonable heuristic to filter out clearly invalid short strings.
+    if (trimmedApiKey.length < 30) {
+      console.warn(`API_KEY: Received a suspiciously short key (length ${trimmedApiKey.length}). Expected a real API key.`);
+      return null;
+    }
+
+    console.log(`API_KEY: Validated key of length ${trimmedApiKey.length} will be used.`);
+    return trimmedApiKey;
   }
 
   async sendMessage(): Promise<void> {

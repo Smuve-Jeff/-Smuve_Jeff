@@ -27,12 +27,19 @@ export class ImageEditorComponent {
   private genAI?: GoogleGenAI; // Use direct GoogleGenAI, make optional
 
   constructor() {
-    try {
-      this.genAI = new GoogleGenAI({ apiKey: this.getSanitizedApiKey() });
-    } catch (e) {
-      console.error("Fatal: Failed to initialize GoogleGenAI. AI features will be disabled.", e);
+    const apiKey = this.getSanitizedApiKey();
+    if (apiKey) {
+      try {
+        this.genAI = new GoogleGenAI({ apiKey });
+      } catch (e) {
+        console.error("Fatal: Failed to initialize GoogleGenAI. AI features will be disabled.", e);
+        this.isAiAvailable.set(false);
+        this.errorMessage.set('AI services are unavailable due to a configuration error.');
+      }
+    } else {
+      console.warn("Google GenAI API key is not available. AI features will be disabled.");
       this.isAiAvailable.set(false);
-      this.errorMessage.set('AI services are unavailable due to a configuration error.');
+      this.errorMessage.set('AI services are unavailable. An API key is required.');
     }
     
     // Effect to update editPrompt when initialPrompt changes (e.g., from chatbot)
@@ -44,14 +51,45 @@ export class ImageEditorComponent {
     });
   }
 
-  private getSanitizedApiKey(): string {
-    const apiKey = process.env.API_KEY;
-    // If the key is the literal string "undefined", or the actual undefined value,
-    // return an empty string to prevent JSON parsing errors and allow graceful failure.
-    if (apiKey === 'undefined' || apiKey === undefined) {
-      return '';
+  private getSanitizedApiKey(): string | null {
+    // Defensive check for process and process.env existence
+    if (typeof process === 'undefined' || !process.env) {
+      console.warn("API_KEY: 'process' or 'process.env' is not available in this environment.");
+      return null;
     }
-    return apiKey;
+
+    const rawApiKey = process.env.API_KEY;
+
+    // 1. Must be a string. Handles null, undefined, numbers, etc.
+    if (typeof rawApiKey !== 'string') {
+      console.warn(`API_KEY: Received non-string type: ${typeof rawApiKey}. Expected string.`);
+      return null;
+    }
+    
+    const trimmedApiKey = rawApiKey.trim();
+
+    // 2. Check for empty string after trimming
+    if (trimmedApiKey === '') {
+      console.warn("API_KEY: Received an empty string after trimming. API key is required.");
+      return null;
+    }
+
+    // 3. Check for common placeholder strings (case-insensitive)
+    const lowercasedKey = trimmedApiKey.toLowerCase();
+    if (lowercasedKey === 'undefined' || lowercasedKey === 'null' || lowercasedKey === '[api_key]' || lowercasedKey === 'your_api_key') {
+      console.warn(`API_KEY: Received a common placeholder string: '${trimmedApiKey}'. API key is not set.`);
+      return null;
+    }
+
+    // 4. Heuristic length check: real Gemini API keys are typically ~39 characters.
+    // A minimum length of 30 is a reasonable heuristic to filter out clearly invalid short strings.
+    if (trimmedApiKey.length < 30) {
+      console.warn(`API_KEY: Received a suspiciously short key (length ${trimmedApiKey.length}). Expected a real API key.`);
+      return null;
+    }
+
+    console.log(`API_KEY: Validated key of length ${trimmedApiKey.length} will be used.`);
+    return trimmedApiKey;
   }
 
   handleImageUpload(event: Event): void {

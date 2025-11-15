@@ -1,0 +1,126 @@
+<script type="importmap">
+{
+  "imports": {
+    "rxjs": "https://aistudiocdn.com/rxjs@^7.8.2?conditions=es2015",
+    "rxjs/operators": "https://aistudiocdn.com/rxjs@^7.8.2/operators?conditions=es2015",
+    "rxjs/ajax": "https://aistudiocdn.com/rxjs@^7.8.2/ajax?conditions=es2015",
+    "rxjs/webSocket": "https://aistudiocdn.com/rxjs@^7.8.2/webSocket?conditions=es2015",
+    "rxjs/testing": "https://aistudiocdn.com/rxjs@^7.8.2/testing?conditions=es2015",
+    "rxjs/fetch": "https://aistudiocdn.com/rxjs@^7.8.2/fetch?conditions=es2015",
+    "@angular/platform-browser": "https://next.esm.sh/@angular/platform-browser@^20.3.11?external=rxjs",
+    "@angular/core": "https://next.esm.sh/@angular/core@^20.3.11?external=rxjs",
+    "@angular/common": "https://next.esm.sh/@angular/common@^20.3.11?external=rxjs",
+    "@google/genai": "https://next.esm.sh/@google/genai@^1.29.1?external=rxjs"
+  }
+}
+</script>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Aura Music Player</title>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet" />
+  <style>
+    body { 
+      font-family: 'VT323', monospace;
+      background-color: #000;
+      /* Define CSS variables for dynamic theming */
+      --color-green-400: #4ade80;
+      --color-green-950: #052e16;
+      --color-green-900: #041407;
+      --color-green-700: #15803d;
+      --color-green-300: #86efac;
+
+      --color-blue-400: #60a5fa;
+      --color-blue-950: #172554;
+      --color-blue-900: #1e3a8a;
+      --color-blue-700: #1d4ed8;
+      --color-blue-300: #93c5fd;
+
+      --color-red-400: #f87171;
+      --color-red-950: #450a0a;
+      --color-red-900: #7f1d1d;
+      --color-red-700: #b91c1c;
+      --color-red-300: #fda4af;
+
+      --color-amber-400: #fbbf24;
+      --color-amber-950: #451a03;
+      --color-amber-900: #78350f;
+      --color-amber-700: #b45309;
+      --color-amber-300: #fcd34d;
+      --color-amber-600: #d97706;
+      --color-amber-200: #fde68a;
+      --color-amber-500: #f59e0b;
+
+      --color-purple-400: #c084fc;
+      --color-purple-950: #2e1065;
+      --color-purple-900: #581c87;
+      --color-purple-700: #7e22ce;
+      --color-purple-300: #d8b4fe;
+
+      --color-cyan-400: #22d3ee;
+      --color-cyan-950: #064e3b;
+      --color-cyan-900: #0d9488;
+      --color-cyan-700: #0891b2;
+      --color-cyan-300: #67e8f9;
+      
+      --color-yellow-400: #facc15;
+      --color-yellow-950: #422006;
+      --color-yellow-900: #a16207;
+      --color-yellow-700: #ca8a04;
+      --color-yellow-300: #fde047;
+
+      --color-violet-400: #a78bfa;
+      --color-violet-950: #290943;
+      --color-violet-900: #500724; /* Adjusted for better contrast on dark */
+      --color-violet-700: #7c3aed;
+      --color-violet-300: #c4b5fd;
+
+      --color-fuchsia-400: #e879f9;
+      --color-fuchsia-950: #4a044e;
+      --color-fuchsia-900: #86198f;
+      --color-fuchsia-700: #c026d3;
+      --color-fuchsia-300: #f0abfc;
+
+      --color-lime-400: #a3e635;
+      --color-lime-950: #365314;
+      --color-lime-900: #4d7c0f;
+      --color-lime-700: #65a30d;
+      --color-lime-300: #bef264;
+
+      --color-neutral-200: #e5e5e5;
+      --color-neutral-400: #a3a3a3;
+      --color-neutral-500: #737373;
+      --color-neutral-600: #525252;
+      --color-neutral-700: #404040;
+      --color-neutral-800: #262626;
+      --color-neutral-900: #171717;
+
+      --color-zinc-200: #e4e4e7;
+      --color-zinc-400: #a1a1aa;
+      --color-zinc-500: #71717a;
+      --color-zinc-600: #52525b;
+      --color-zinc-700: #3f3f46;
+      --color-zinc-800: #27272a;
+      --color-zinc-900: #18181b;
+
+      --color-stone-200: #e7e5e4;
+      --color-stone-400: #a8a29e;
+      --color-stone-500: #78716c;
+      --color-stone-600: #57534e;
+      --color-stone-700: #44403c;
+      --color-stone-800: #292524;
+      --color-stone-900: #1c1917;
+    }
+  </style>
+</head>
+<body class="bg-black text-white antialiased">
+  <app-root></app-root>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<div class="w-full p-4 flex flex-col gap-4 relative min-h-[600px]"
+  [class]="'text-' + theme().neutral + '-200'"
+  [class]="'bg-' + theme().purple + '-900/50'"
+  [class]="'border border-' + theme().purple + '-500/30'">
+  <h2 class="text-center text-lg" [class]="'text-' + theme().purple + '-400'">[ AURA IMAGE LAB ]</h2>
+
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
+    <!-- Image Upload & Prompt -->
+    <div class="flex flex-col gap-4 p-4"
+      [class]="'border border-' + theme().purple + '-500/20'">
+      <h3 class="text-base" [class]="'text-' + theme().purple + '-300'">// ORIGINAL IMAGE (FOR CONTEXT)</h3>
+      <div class="flex-grow flex items-center justify-center border-2 border-dashed p-2 min-h-[200px] overflow-hidden"
+        [class]="'border-' + theme().purple + '-700/50'">
+        @if (originalImageUrl()) {
+          <img [src]="originalImageUrl()" alt="Uploaded Image" class="max-w-full max-h-full object-contain">
+        } @else {
+          <span class="text-sm" [class]="'text-' + theme().neutral + '-500'">[ Upload an image for reference or leave empty ]</span>
+        }
+      </div>
+      
+      <label class="w-full text-center block p-2 border hover:text-black cursor-pointer text-sm"
+        [class]="'border-' + theme().purple + '-500/50'"
+        [class]="'hover:bg-' + theme().purple + '-500'">
+        [ UPLOAD IMAGE ]
+        <input type="file" #fileInput (change)="handleImageUpload($event)" accept="image/*" class="hidden">
+      </label>
+
+      <label for="edit-prompt" class="block text-sm" [class]="'text-' + theme().purple + '-300'">GENERATION PROMPT:</label>
+      <textarea id="edit-prompt" 
+        [value]="editPrompt()" 
+        (input)="editPrompt.set($event.target.value)"
+        placeholder="e.g., 'A retro-futuristic album cover with glowing elements', 'A sci-fi landscape art with vibrant colors'" 
+        rows="4" 
+        class="w-full p-2 text-sm focus:ring-500 resize-y"
+        [class]="'bg-' + theme().purple + '-800/50'"
+        [class]="'border border-' + theme().purple + '-500/50'"
+        [class]="'text-' + theme().neutral + '-200'"
+        [class]="'focus:ring-' + theme().purple + '-500'"
+        [class]="'focus:border-' + theme().purple + '-500'"
+        [disabled]="isLoading() || !isAiAvailable()"></textarea>
+      
+      <div class="flex gap-2">
+        <button (click)="generateImage()" 
+          class="flex-grow px-4 py-2 border-2 text-lg"
+          [class]="'border-' + theme().purple + '-500'"
+          [class]="'bg-' + theme().purple + '-800'"
+          [class]="'text-' + theme().purple + '-300'"
+          [class]="'hover:bg-' + theme().purple + '-500'"
+          [class]="'hover:text-black'"
+          [disabled]="!editPrompt() || isLoading() || !isAiAvailable()">
+          @if (isLoading()) {
+            <span>[ GENERATING... ]</span>
+          } @else {
+            <span>[ GENERATE ]</span>
+          }
+        </button>
+        <button (click)="clearImage()" 
+          class="px-4 py-2 border-2 text-lg"
+          [class]="'border-' + theme().neutral + '-500'"
+          [class]="'bg-' + theme().neutral + '-800'"
+          [class]="'text-' + theme().neutral + '-300'"
+          [class]="'hover:bg-' + theme().neutral + '-500'"
+          [class]="'hover:text-black'">
+          [ CLEAR ]
+        </button>
+      </div>
+
+      @if (errorMessage()) {
+        <p class="text-red-500 text-sm mt-2 text-center">{{ errorMessage() }}</p>
+      }
+    </div>
+
+    <!-- Generated Images -->
+    <div class="flex flex-col gap-4 p-4"
+      [class]="'border border-' + theme().purple + '-500/20'">
+      <h3 class="text-base" [class]="'text-' + theme().purple + '-300'">// GENERATED IMAGE</h3>
+      <div class="flex-grow flex items-center justify-center border-2 border-dashed p-2 min-h-[200px] overflow-hidden"
+        [class]="'border-' + theme().purple + '-700/50'">
+        @if (generatedImageUrls().length > 0) {
+          @for (imgUrl of generatedImageUrls(); track $index) {
+            <img [src]="imgUrl" alt="Generated Image" class="max-w-full max-h-full object-contain">
+          }
+        } @else if (isLoading()) {
+          <span class="text-sm animate-pulse" [class]="'text-' + theme().neutral + '-500'">[ Generating image... ]</span>
+        } @else {
+          <span class="text-sm" [class]="'text-' + theme().neutral + '-500'">[ No image generated yet ]</span>
+        }
+      </div>
+      @if (generatedImageUrls().length > 0) {
+        <button (click)="useAsAlbumArt()"
+           class="w-full text-center px-4 py-2 border-2 hover:text-black text-lg mb-2"
+           [class]="'border-' + theme().purple + '-500'"
+           [class]="'bg-' + theme().purple + '-800'"
+           [class]="'text-' + theme().purple + '-300'"
+           [class]="'hover:bg-' + theme().purple + '-500'">
+           [ USE AS ALBUM ART ]
+        </button>
+      }
+      @if (generatedImageUrls().length > 0) {
+        <a [href]="generatedImageUrls()[0]" download="aura-edited-image.png"
+           class="w-full text-center px-4 py-2 border-2 hover:text-black text-lg"
+           [class]="'border-' + theme().purple + '-500'"
+           [class]="'bg-' + theme().purple + '-800'"
+           [class]="'text-' + theme().purple + '-300'"
+           [class]="'hover:bg-' + theme().purple + '-500'">
+           [ DOWNLOAD ]
+        </a>
+      }
+    </div>
+  </div>
+</div>

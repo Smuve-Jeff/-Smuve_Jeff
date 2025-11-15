@@ -1,12 +1,12 @@
 import { Component, ChangeDetectionStrategy, signal, ElementRef, viewChild, effect, OnDestroy, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { EqPanelComponent } from './components/eq-panel/eq-panel.component';
-import { MatrixBackgroundComponent } from './components/matrix-background/matrix-background.component';
-import { DrumMachineComponent } from './components/drum-machine/drum-machine.component';
-import { ChatbotComponent } from './components/chatbot/chatbot.component';
-import { ImageEditorComponent } from './components/image-editor/image-editor.component';
-import { VideoEditorComponent } from './components/video-editor/video-editor.component'; // NEW: Import VideoEditorComponent
-import { AudioVisualizerComponent } from './components/audio-visualizer/audio-visualizer.component'; // NEW: Import AudioVisualizerComponent
+import { EqPanelComponent } from '../eq-panel/eq-panel.component';
+import { MatrixBackgroundComponent } from '../matrix-background/matrix-background.component';
+import { DrumMachineComponent } from '../audio-visualizer/chatbot/drum-machine/drum-machine.component';
+import { ChatbotComponent } from '../audio-visualizer/chatbot/chatbot.component';
+import { ImageEditorComponent } from '../image-editor/image-editor.component';
+import { VideoEditorComponent } from './video-editor.component';
+import { AudioVisualizerComponent } from '../audio-visualizer/chatbot/audio-visualizer.component';
 
 export interface Track {
   title: string;
@@ -77,16 +77,18 @@ export interface AppTheme {
   primary: string; // Tailwind color name (e.g., 'green', 'amber')
   accent: string;  // Tailwind color name for DJ mode (e.g., 'amber', 'blue')
   neutral: string; // Tailwind color name for neutral backgrounds/text (e.g., 'neutral', 'stone')
+  purple: string; // Added for editor themes, though usually generic, using it for specific editors
+  red: string; // Added for editor themes, though usually generic, using it for specific editors
 }
 
 const THEMES: AppTheme[] = [
-  { name: 'Green Vintage', primary: 'green', accent: 'amber', neutral: 'neutral' },
-  { name: 'Blue Retro', primary: 'blue', accent: 'fuchsia', neutral: 'zinc' },
-  { name: 'Red Glitch', primary: 'red', accent: 'cyan', neutral: 'stone' },
-  { name: 'Amber Glow', primary: 'amber', accent: 'green', neutral: 'neutral' },
-  { name: 'Purple Haze', primary: 'purple', accent: 'lime', neutral: 'slate' },
-  { name: 'Cyan Wave', primary: 'cyan', accent: 'violet', neutral: 'gray' },
-  { name: 'Yellow Neon', primary: 'yellow', accent: 'red', neutral: 'stone' },
+  { name: 'Green Vintage', primary: 'green', accent: 'amber', neutral: 'neutral', purple: 'purple', red: 'red' },
+  { name: 'Blue Retro', primary: 'blue', accent: 'fuchsia', neutral: 'zinc', purple: 'purple', red: 'red' },
+  { name: 'Red Glitch', primary: 'red', accent: 'cyan', neutral: 'stone', purple: 'purple', red: 'red' },
+  { name: 'Amber Glow', primary: 'amber', accent: 'green', neutral: 'neutral', purple: 'purple', red: 'red' },
+  { name: 'Purple Haze', primary: 'purple', accent: 'lime', neutral: 'slate', purple: 'purple', red: 'red' },
+  { name: 'Cyan Wave', primary: 'cyan', accent: 'violet', neutral: 'gray', purple: 'purple', red: 'red' },
+  { name: 'Yellow Neon', primary: 'yellow', accent: 'red', neutral: 'stone', purple: 'purple', red: 'red' },
 ];
 
 @Component({
@@ -247,9 +249,9 @@ export class AppComponent implements OnDestroy {
     this.setupAudioEffects();
     effect(() => {
         const track = this.currentPlayerTrack();
-        if (track && this.mainViewMode() === 'player') { // Changed from viewMode()
+        if (track && this.mainViewMode() === 'player') {
             this.loadTrack(track, 'A', this.deckA().isPlaying || this.playlist().length === 1);
-        } else if (this.playlist().length === 0 && this.mainViewMode() === 'player') { // Only reset if in player mode and no playlist
+        } else if (this.playlist().length === 0 && this.mainViewMode() === 'player') {
             this.deckA.set({...initialDeckState, track: {...initialDeckState.track, artist: 'Load a track to start'}});
         }
     });
@@ -398,11 +400,16 @@ export class AppComponent implements OnDestroy {
 
     // FIX: Create a valid dummy MediaStream with an audio track to prevent errors.
     const dummyOscillator = this.audioContext.createOscillator();
+    dummyOscillator.type = 'sine'; // A very quiet sine wave
+    dummyOscillator.frequency.setValueAtTime(0, this.audioContext.currentTime); // 0Hz to make it silent
+    const dummyGain = this.audioContext.createGain();
+    dummyGain.gain.setValueAtTime(0, this.audioContext.currentTime); // Ensure it's completely silent
+    dummyOscillator.connect(dummyGain);
     const dummyDestination = this.audioContext.createMediaStreamDestination();
-    dummyOscillator.connect(dummyDestination);
+    dummyGain.connect(dummyDestination);
     dummyOscillator.start();
     this.dummyDrumStream = dummyDestination.stream;
-    dummyOscillator.stop(this.audioContext.currentTime + 0.01); // Stop it almost immediately
+    // dummyOscillator.stop() - no need to stop immediately, it will just produce silent data.
 
     // Deck A Chain
     this.sourceA = this.audioContext.createMediaElementSource(audioElA);
@@ -505,7 +512,7 @@ export class AppComponent implements OnDestroy {
     if (deck().track.audioSrc) {
       this.ensureAudioContext();
       deck.update(d => ({ ...d, isPlaying: !d.isPlaying, wasPlayingBeforeScratch: !d.isPlaying })); // Store play state
-    } else if (this.mainViewMode() === 'player' && this.playlist().length > 0) { // Changed from viewMode()
+    } else if (this.mainViewMode() === 'player' && this.playlist().length > 0) {
         this.playTrackFromPlaylist(this.currentTrackIndex() >= 0 ? this.currentTrackIndex() : 0);
     }
   }
@@ -530,7 +537,7 @@ export class AppComponent implements OnDestroy {
   onLoadedMetadata(event: Event, deckId: 'A' | 'B'): void { (deckId === 'A' ? this.deckA : this.deckB).update(d => ({ ...d, duration: (event.target as HTMLAudioElement).duration })); }
 
   onEnded(deckId: 'A' | 'B'): void {
-    if (this.mainViewMode() === 'player' && deckId === 'A' && this.playlist().length > 0) { // Changed from viewMode()
+    if (this.mainViewMode() === 'player' && deckId === 'A' && this.playlist().length > 0) {
       if (this.currentTrackIndex() < this.playlist().length - 1) { this.playNext(); return; }
     }
     const deck = deckId === 'A' ? this.deckA : this.deckB;
@@ -544,7 +551,10 @@ export class AppComponent implements OnDestroy {
   onPitchChange(event: Event, deckId: 'A' | 'B'): void { (deckId === 'A' ? this.deckA : this.deckB).update(d => ({ ...d, playbackRate: parseFloat((event.target as HTMLInputElement).value) })); }
   onFilterChange(event: Event, deckId: 'A' | 'B'): void {
       const value = parseFloat((event.target as HTMLInputElement).value); // 0 to 1
-      const freq = 20 * Math.pow(20000 / 20, value);
+      const minFreq = 20;
+      const maxFreq = 20000;
+      // Convert linear slider value (0-1) back to logarithmic frequency
+      const freq = minFreq * Math.pow((maxFreq / minFreq), value);
       (deckId === 'A' ? this.deckA : this.deckB).update(d => ({ ...d, filterFreq: freq }));
   }
   onGainChange(event: Event, deckId: 'A' | 'B'): void { (deckId === 'A' ? this.deckA : this.deckB).update(d => ({ ...d, gain: parseInt((event.target as HTMLInputElement).value, 10) })); }
@@ -575,7 +585,7 @@ export class AppComponent implements OnDestroy {
         audioSrc: file.type.startsWith('video') ? objectURL : objectURL,
         videoSrc: file.type.startsWith('video') ? objectURL : undefined,
       };
-      if (this.mainViewMode() === 'player') { // Changed from viewMode()
+      if (this.mainViewMode() === 'player') {
           this.addTrackToPlaylist(newTrack, true);
       } else {
           const targetDeck = this.loadingTargetDeck();
@@ -654,7 +664,7 @@ export class AppComponent implements OnDestroy {
     if (index >= 0 && index < playlist.length) {
       this.currentTrackIndex.set(index);
       // Automatically play the track if it's the player mode
-      if (this.mainViewMode() === 'player') { // Changed from viewMode()
+      if (this.mainViewMode() === 'player') {
         this.deckA.set({ ...initialDeckState, track: playlist[index], isPlaying: true, wasPlayingBeforeScratch: true });
       }
     } else {
@@ -971,7 +981,7 @@ export class AppComponent implements OnDestroy {
       } catch (err) {
         console.error('Error enabling microphone:', err);
         this.micEnabled.set(false);
-        alert('Could not enable microphone. Please ensure microphone permissions are granted.');
+        this.appError.set('Could not enable microphone. Please ensure microphone permissions are granted.'); // Use appError
       }
     }
   }
@@ -989,8 +999,20 @@ export class AppComponent implements OnDestroy {
 
   onMicFilterChange(event: Event): void {
     const value = parseFloat((event.target as HTMLInputElement).value); // 0 to 1
-    const freq = 20 * Math.pow(20000 / 20, value); // Logarithmic scale for frequency
+    const minFreq = 20;
+    const maxFreq = 20000;
+    const freq = minFreq * Math.pow((maxFreq / minFreq), value); // Logarithmic scale for frequency
     this.micFilterFreq.set(freq);
+  }
+
+  // Helper to get normalized filter value for slider display
+  getNormalizedFilterValue(freq: number): number {
+    const minFreq = 20;
+    const maxFreq = 20000;
+    // Handle edge cases to prevent Math.log(0) or division by zero, though unlikely with minFreq=20
+    if (freq <= minFreq) return 0;
+    if (freq >= maxFreq) return 1;
+    return (Math.log(freq) - Math.log(minFreq)) / (Math.log(maxFreq) - Math.log(minFreq));
   }
 
   // NEW: Handle commands from chatbot

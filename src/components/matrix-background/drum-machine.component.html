@@ -1,0 +1,132 @@
+<div class="w-full p-4 flex flex-col gap-4 relative"
+  [class]="'text-' + theme().neutral + '-200'"
+  [class]="'bg-' + theme().neutral + '-900/50'"
+  [class]="'border border-' + theme().accent + '-500/30'">
+  <h2 class="text-center text-lg" [class]="'text-' + theme().accent + '-400'">[ AURA BEAT STATION ]</h2>
+
+  <!-- Controls -->
+  <div class="flex flex-col sm:flex-row justify-between items-center gap-4 p-2"
+    [class]="'border border-' + theme().accent + '-500/20'">
+    <div class="flex items-center gap-4">
+      <button (click)="togglePlay()" class="w-24 px-4 py-2 border-2 text-lg"
+        [class]="'border-' + theme().accent + '-500'"
+        [class]="'bg-' + theme().neutral + '-800'"
+        [class]="'text-' + theme().accent + '-300'"
+        [class]="'hover:bg-' + theme().accent + '-500'"
+        [class]="'hover:text-black'">
+        {{ isPlaying() ? '[ STOP ]' : '[ PLAY ]' }}
+      </button>
+      <div class="flex items-center gap-2">
+        <label for="bpm" class="text-sm">BPM:</label>
+        <input id="bpm-slider" type="range" min="60" max="200" [value]="bpm()" (input)="onBpmChange($event)" class="w-24 aura-slider">
+        <input id="bpm-text" type="number" min="60" max="200" [value]="bpm()" (input)="onBpmChange($event)" class="p-1 text-sm w-16 text-center"
+          [class]="'bg-' + theme().neutral + '-800'"
+          [class]="'border border-' + theme().accent + '-500/50'"
+          [class]="'text-' + theme().neutral + '-200'"
+          [class]="'focus:ring-' + theme().accent + '-500'"
+          [class]="'focus:border-' + theme().accent + '-500'">
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+       <label for="kit" class="text-sm">KIT:</label>
+       <select #kitSelect id="kit" (change)="changeKit(kitSelect.value)" class="p-1 text-sm"
+        [class]="'bg-' + theme().neutral + '-800'"
+        [class]="'border border-' + theme().accent + '-500/50'"
+        [class]="'text-' + theme().neutral + '-200'"
+        [class]="'focus:ring-' + theme().accent + '-500'"
+        [class]="'focus:border-' + theme().accent + '-500'">
+        @for (kit of kits; track kit.name) {
+          <option [value]="kit.name" [selected]="kit.name === activeKit().name">{{ kit.name }}</option>
+        }
+       </select>
+    </div>
+  </div>
+
+  <!-- Project Management & Routing -->
+  <div class="flex flex-col md:flex-row justify-between items-center gap-4 p-2 text-sm"
+    [class]="'border border-' + theme().accent + '-500/20'">
+    <div class="flex gap-2">
+      <button (click)="savePattern()" class="px-3 py-1 border hover:text-black"
+        [class]="'border-' + theme().accent + '-500/50'"
+        [class]="'hover:bg-' + theme().accent + '-500'">[ SAVE .JSON ]</button>
+      <label class="px-3 py-1 border hover:text-black cursor-pointer"
+        [class]="'border-' + theme().accent + '-500/50'"
+        [class]="'hover:bg-' + theme().accent + '-500'">
+        [ LOAD .JSON ]
+        <input type="file" accept=".json" class="hidden" (change)="handlePatternUpload($event)">
+      </label>
+      <button (click)="exportAsWav()" class="px-3 py-1 border hover:text-black"
+        [class]="'border-' + theme().accent + '-500/50'"
+        [class]="'hover:bg-' + theme().accent + '-500'">[ EXPORT .WAV ]</button>
+    </div>
+    <div class="flex gap-2 items-center">
+      <span class="text-xs" [class]="'text-' + theme().neutral + '-400'">ROUTE TO DJ:</span>
+      <button (click)="toggleRouteToDeck('A')" class="px-3 py-1 border hover:text-black"
+        [class]="'border-' + theme().accent + '-500/50'"
+        [class]="'hover:bg-' + theme().accent + '-500'"
+        [class.bg-amber-500]="isDrumRoutedA()" [class.text-black]="isDrumRoutedA()">[ A ]</button>
+      <button (click)="toggleRouteToDeck('B')" class="px-3 py-1 border hover:text-black"
+        [class]="'border-' + theme().accent + '-500/50'"
+        [class]="'hover:bg-' + theme().accent + '-500'"
+        [class.bg-amber-500]="isDrumRoutedB()" [class.text-black]="isDrumRoutedB()">[ B ]</button>
+      @if (isDrumRoutedA() || isDrumRoutedB()) {
+        <button (click)="unrouteAllDrums()" class="px-3 py-1 border border-red-500/50 hover:bg-red-500 hover:text-black text-red-300">[ UNROUTE ALL ]</button>
+      }
+    </div>
+  </div>
+
+  <!-- Pad Grid -->
+  <div class="grid grid-cols-4 gap-2">
+    @for(pad of pads(); track pad.name; let i = $index) {
+      <div 
+        (click)="openSampleLibrary(i)"
+        (contextmenu)="$event.preventDefault(); triggerPad(i)"
+        class="drum-pad relative h-24 flex flex-col items-center justify-center cursor-pointer border-2 bg-stone-800 text-amber-300 transition-all duration-75 ease-out"
+        [class]="'border-' + theme().accent + '-500'"
+        [class.lit]="litPads().has(i)"
+        [class]="litPads().has(i) ? 'bg-' + theme().accent + '-500' : 'bg-' + theme().neutral + '-800'"
+        [class]="litPads().has(i) ? 'text-black' : 'text-' + theme().accent + '-300'">
+        <span class="text-sm">{{ pad.name }}</span>
+        <span class="key-hint absolute bottom-1 right-1 text-xs text-amber-500/50">{{ pad.key }}</span>
+      </div>
+    }
+  </div>
+
+  <!-- Sequencer -->
+  <div class="w-full overflow-x-auto">
+    <div class="sequencer-grid grid gap-1 p-2 bg-stone-800 border border-amber-500/20">
+      <div class="sequencer-header text-amber-400 text-xs text-right pr-2"></div> <!--- Spacer for track names col -->
+       @for(step of [].constructor(16); track $index) {
+        <div class="step-header text-neutral-400 text-xs text-center"
+          [class]="currentStep() === $index ? 'text-' + theme().accent + '-300' : 'text-' + theme().neutral + '-400'"
+          [class.font-bold]="currentStep() === $index">
+          {{ $index + 1 }}
+        </div>
+      }
+
+      @for(pad of pads(); track pad.name; let padIndex = $index) {
+        <div class="track-name text-amber-300 text-xs text-right pr-2">{{ pad.name }}</div>
+         @for(step of sequence().get(pad.sampleKey) || []; track $index) {
+          <div 
+            class="step w-6 h-6 border cursor-pointer flex items-center justify-center transition-all duration-75"
+            [class]="'border-' + theme().accent + '-500/20'"
+            [class]="!step && currentStep() !== $index ? 'bg-' + theme().neutral + '-700' : ''"
+            [class]="!step && currentStep() === $index ? 'bg-' + theme().accent + '-900' : ''"
+            [class]="step ? 'bg-' + theme().accent + '-500' : ''"
+            (click)="toggleStep(padIndex, $index)">
+          </div>
+        }
+      }
+    </div>
+  </div>
+
+  @if (showSampleLibrary()) {
+    <app-sample-library
+      [pads]="pads()"
+      [selectedPadIndex]="selectedPadIndex()"
+      (close)="closeSampleLibrary()"
+      (sampleAssigned)="assignSampleToPad($event)"
+      [theme]="theme()">
+    </app-sample-library>
+  }
+</div>

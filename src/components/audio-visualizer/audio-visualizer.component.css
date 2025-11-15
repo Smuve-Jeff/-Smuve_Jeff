@@ -9,7 +9,7 @@
   height: 100%;
   background-color: transparent; /* No background, just bars */
   overflow: hidden; /* Hide anything outside canvas boundaries */
-  border: 1px solid theme('colors.green.700'); /* Subtle border */
+  border: 1px solid var(--primary-color); /* Dynamic subtle border */
 }
 
 canvas {

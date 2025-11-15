@@ -1,17 +1,17 @@
-
+/* Custom scrollbar for sample list */
 .sample-list::-webkit-scrollbar {
   width: 8px;
 }
 
 .sample-list::-webkit-scrollbar-track {
-  background: theme('colors.stone.800'); /* stone-800 */
+  background: var(--sample-list-track-bg);
 }
 
 .sample-list::-webkit-scrollbar-thumb {
-  background: theme('colors.amber.600'); /* amber-600 */
-  border: 1px solid theme('colors.stone.900'); /* stone-900 */
+  background: var(--sample-list-thumb-bg);
+  border: 1px solid var(--sample-list-thumb-border);
 }
 
 .sample-list::-webkit-scrollbar-thumb:hover {
-  background: theme('colors.amber.500'); /* amber-500 */
+  background: var(--sample-list-thumb-hover-bg);
 }

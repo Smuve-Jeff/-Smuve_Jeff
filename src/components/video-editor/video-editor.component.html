@@ -1,5 +1,8 @@
-<div class="w-full text-neutral-200 p-4 bg-violet-900/50 border border-violet-500/30 flex flex-col gap-4 relative min-h-[600px]">
-  <h2 class="text-center text-lg text-violet-400">[ AURA VIDEO LAB ]</h2>
+<div class="w-full p-4 flex flex-col gap-4 relative min-h-[600px]"
+  [class]="'text-' + theme().neutral + '-200'"
+  [class]="'bg-' + theme().purple + '-900/50'"
+  [class]="'border border-' + theme().purple + '-500/30'">
+  <h2 class="text-center text-lg" [class]="'text-' + theme().purple + '-400'">[ AURA VIDEO LAB ]</h2>
 
   @if (error()) {
     <div class="bg-red-900/50 text-red-300 p-3 text-center border border-red-500 animate-fade-in">
@@ -9,12 +12,14 @@
 
   <div class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-grow">
     <!-- Camera & Recording -->
-    <div class="flex flex-col gap-4 border border-violet-500/20 p-4">
-      <h3 class="text-base text-violet-300">// CAMERA & RECORDING</h3>
-      <div class="flex-grow flex items-center justify-center border-2 border-dashed border-violet-700/50 p-2 min-h-[200px] overflow-hidden bg-black relative">
+    <div class="flex flex-col gap-4 p-4"
+      [class]="'border border-' + theme().purple + '-500/20'">
+      <h3 class="text-base" [class]="'text-' + theme().purple + '-300'">// CAMERA & RECORDING</h3>
+      <div class="flex-grow flex items-center justify-center border-2 border-dashed p-2 min-h-[200px] overflow-hidden bg-black relative"
+        [class]="'border-' + theme().purple + '-700/50'">
         <video #liveVideoPreview class="max-w-full max-h-full object-contain" autoplay muted playsinline></video>
         @if (!isCameraActive()) {
-          <span class="absolute text-neutral-500 text-sm">[ Camera Off ]</span>
+          <span class="absolute text-sm" [class]="'text-' + theme().neutral + '-500'">[ Camera Off ]</span>
         }
         @if (isRecording()) {
           <span class="absolute top-2 left-2 text-red-500 animate-pulse text-sm flex items-center gap-1">
@@ -25,7 +30,12 @@
       
       <div class="flex gap-2">
         <button (click)="toggleCamera()"
-          class="flex-grow px-4 py-2 border-2 border-violet-500 bg-violet-800 text-violet-300 hover:bg-violet-500 hover:text-black text-lg"
+          class="flex-grow px-4 py-2 border-2 text-lg"
+          [class]="'border-' + theme().purple + '-500'"
+          [class]="'bg-' + theme().purple + '-800'"
+          [class]="'text-' + theme().purple + '-300'"
+          [class]="'hover:bg-' + theme().purple + '-500'"
+          [class]="'hover:text-black'"
           [disabled]="isRecording()">
           @if (isCameraActive()) {
             <span>[ DISABLE CAMERA ]</span>
@@ -36,7 +46,12 @@
       </div>
       <div class="flex gap-2">
          <button (click)="startRecording()" 
-            class="flex-grow px-4 py-2 border-2 border-green-500 bg-green-800 text-green-300 hover:bg-green-500 hover:text-black text-lg"
+            class="flex-grow px-4 py-2 border-2 text-lg"
+            [class]="'border-' + theme().primary + '-500'"
+            [class]="'bg-' + theme().primary + '-800'"
+            [class]="'text-' + theme().primary + '-300'"
+            [class]="'hover:bg-' + theme().primary + '-500'"
+            [class]="'hover:text-black'"
             [disabled]="isRecording() || !isCameraActive()">
             @if (isRecording()) {
               <span>[ RECORDING... ]</span>
@@ -45,7 +60,12 @@
             }
           </button>
           <button (click)="stopRecording()" 
-            class="px-4 py-2 border-2 border-red-500 bg-red-800 text-red-300 hover:bg-red-500 hover:text-black text-lg"
+            class="px-4 py-2 border-2 text-lg"
+            [class]="'border-' + theme().red + '-500'"
+            [class]="'bg-' + theme().red + '-800'"
+            [class]="'text-' + theme().red + '-300'"
+            [class]="'hover:bg-' + theme().red + '-500'"
+            [class]="'hover:text-black'"
             [disabled]="!isRecording()">
             [ STOP ]
           </button>
@@ -53,38 +73,55 @@
 
       <!-- Recorded Video Preview -->
       @if (recordedVideoUrl()) {
-        <h3 class="text-base text-violet-300 mt-4">// RECORDED VIDEO</h3>
-        <div class="flex items-center justify-center border-2 border-dashed border-violet-700/50 p-2 min-h-[200px] overflow-hidden bg-black">
+        <h3 class="text-base mt-4" [class]="'text-' + theme().purple + '-300'">// RECORDED VIDEO</h3>
+        <div class="flex items-center justify-center border-2 border-dashed p-2 min-h-[200px] overflow-hidden bg-black"
+          [class]="'border-' + theme().purple + '-700/50'">
           <video #recordedVideoPlayer [src]="recordedVideoUrl()" controls class="max-w-full max-h-full object-contain"></video>
         </div>
         <a [href]="recordedVideoUrl()!" download="aura-recorded-video.webm"
-           class="w-full text-center px-4 py-2 border-2 border-violet-500 bg-violet-800 text-violet-300 hover:bg-violet-500 hover:text-black text-lg">
+           class="w-full text-center px-4 py-2 border-2 hover:text-black text-lg"
+           [class]="'border-' + theme().purple + '-500'"
+           [class]="'bg-' + theme().purple + '-800'"
+           [class]="'text-' + theme().purple + '-300'"
+           [class]="'hover:bg-' + theme().purple + '-500'">
            [ DOWNLOAD RECORDED VIDEO ]
         </a>
       }
     </div>
 
     <!-- AI Video Generation -->
-    <div class="flex flex-col gap-4 border border-violet-500/20 p-4">
-      <h3 class="text-base text-violet-300">// AI VIDEO GENERATION</h3>
+    <div class="flex flex-col gap-4 p-4"
+      [class]="'border border-' + theme().purple + '-500/20'">
+      <h3 class="text-base" [class]="'text-' + theme().purple + '-300'">// AI VIDEO GENERATION</h3>
       @if (imageForVideoGeneration()) {
         <div class="flex flex-col items-center gap-2">
-          <h4 class="text-sm text-neutral-400">// IMAGE INPUT FROM EDITOR</h4>
-          <img [src]="imageForVideoGeneration()!" alt="Image from editor" class="w-24 h-24 object-cover border border-neutral-600">
+          <h4 class="text-sm" [class]="'text-' + theme().neutral + '-400'">// IMAGE INPUT FROM EDITOR</h4>
+          <img [src]="imageForVideoGeneration()!" alt="Image from editor" class="w-24 h-24 object-cover border"
+            [class]="'border-' + theme().neutral + '-600'">
         </div>
       }
-      <label for="video-prompt" class="block text-sm text-violet-300">VIDEO PROMPT:</label>
+      <label for="video-prompt" class="block text-sm" [class]="'text-' + theme().purple + '-300'">VIDEO PROMPT:</label>
       <textarea id="video-prompt" 
         [value]="videoPrompt()" 
         (input)="videoPrompt.set($event.target.value)"
         placeholder="e.g., 'A neon hologram of a cat driving at top speed', 'A futuristic city at sunset with flying cars and towering skyscrapers.'" 
         rows="4" 
-        class="w-full bg-violet-800/50 border border-violet-500/50 text-neutral-200 p-2 text-sm focus:ring-violet-500 focus:border-violet-500 resize-y"
+        class="w-full p-2 text-sm focus:ring-500 resize-y"
+        [class]="'bg-' + theme().purple + '-800/50'"
+        [class]="'border-' + theme().purple + '-500/50'"
+        [class]="'text-' + theme().neutral + '-200'"
+        [class]="'focus:ring-' + theme().purple + '-500'"
+        [class]="'focus:border-' + theme().purple + '-500'"
         [disabled]="isGeneratingVideo() || !isAiAvailable()"></textarea>
       
       <div class="flex flex-col gap-2">
         <button (click)="generateVideo(false)" 
-          class="flex-grow px-4 py-2 border-2 border-violet-500 bg-violet-800 text-violet-300 hover:bg-violet-500 hover:text-black text-lg"
+          class="flex-grow px-4 py-2 border-2 text-lg"
+          [class]="'border-' + theme().purple + '-500'"
+          [class]="'bg-' + theme().purple + '-800'"
+          [class]="'text-' + theme().purple + '-300'"
+          [class]="'hover:bg-' + theme().purple + '-500'"
+          [class]="'hover:text-black'"
           [disabled]="!videoPrompt() || isGeneratingVideo() || !isAiAvailable()">
           @if (isGeneratingVideo()) {
             <span>[ GENERATING... ]</span>
@@ -94,7 +131,12 @@
         </button>
         @if (imageForVideoGeneration()) {
           <button (click)="generateVideo(true)" 
-            class="flex-grow px-4 py-2 border-2 border-violet-500 bg-violet-800 text-violet-300 hover:bg-violet-500 hover:text-black text-lg"
+            class="flex-grow px-4 py-2 border-2 text-lg"
+            [class]="'border-' + theme().purple + '-500'"
+            [class]="'bg-' + theme().purple + '-800'"
+            [class]="'text-' + theme().purple + '-300'"
+            [class]="'hover:bg-' + theme().purple + '-500'"
+            [class]="'hover:text-black'"
             [disabled]="!videoPrompt() || isGeneratingVideo() || !isAiAvailable()">
             @if (isGeneratingVideo()) {
               <span>[ GENERATING... ]</span>
@@ -106,17 +148,22 @@
       </div>
 
       @if (generationProgressMessage()) {
-        <p class="text-sm text-neutral-400 mt-2 text-center animate-pulse">{{ generationProgressMessage() }}</p>
+        <p class="text-sm mt-2 text-center animate-pulse" [class]="'text-' + theme().neutral + '-400'">{{ generationProgressMessage() }}</p>
       }
 
       <!-- Generated Video Display -->
       @if (generatedVideoUrl()) {
-        <h3 class="text-base text-violet-300 mt-4">// GENERATED AI VIDEO</h3>
-        <div class="flex items-center justify-center border-2 border-dashed border-violet-700/50 p-2 min-h-[200px] overflow-hidden bg-black">
+        <h3 class="text-base mt-4" [class]="'text-' + theme().purple + '-300'">// GENERATED AI VIDEO</h3>
+        <div class="flex items-center justify-center border-2 border-dashed p-2 min-h-[200px] overflow-hidden bg-black"
+          [class]="'border-' + theme().purple + '-700/50'">
           <video [src]="generatedVideoUrl()!" controls autoplay loop muted playsinline class="max-w-full max-h-full object-contain"></video>
         </div>
         <a [href]="generatedVideoUrl()!" download="aura-ai-generated-video.mp4"
-           class="w-full text-center px-4 py-2 border-2 border-violet-500 bg-violet-800 text-violet-300 hover:bg-violet-500 hover:text-black text-lg">
+           class="w-full text-center px-4 py-2 border-2 hover:text-black text-lg"
+           [class]="'border-' + theme().purple + '-500'"
+           [class]="'bg-' + theme().purple + '-800'"
+           [class]="'text-' + theme().purple + '-300'"
+           [class]="'hover:bg-' + theme().purple + '-500'">
            [ DOWNLOAD AI VIDEO ]
         </a>
       }
@@ -125,7 +172,12 @@
 
   <div class="flex justify-center mt-4">
     <button (click)="clearAll()" 
-      class="px-6 py-2 border-2 border-neutral-500 bg-neutral-800 text-neutral-300 hover:bg-neutral-500 hover:text-black text-lg">
+      class="px-6 py-2 border-2 text-lg"
+      [class]="'border-' + theme().neutral + '-500'"
+      [class]="'bg-' + theme().neutral + '-800'"
+      [class]="'text-' + theme().neutral + '-300'"
+      [class]="'hover:bg-' + theme().neutral + '-500'"
+      [class]="'hover:text-black'">
       [ CLEAR ALL ]
     </button>
   </div>

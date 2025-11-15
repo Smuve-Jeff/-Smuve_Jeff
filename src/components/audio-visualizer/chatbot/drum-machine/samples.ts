@@ -1,4 +1,3 @@
-
 export interface Pad {
   name: string;
   key: string;

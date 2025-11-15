@@ -1,0 +1,123 @@
+
+.drum-pad {
+  /* Dynamic styles moved to HTML using [class] bindings */
+}
+
+/* Sequencer Grid */
+.sequencer-grid {
+  grid-template-columns: 80px repeat(16, 1fr); /* Adjust track name column width as needed */
+  grid-auto-rows: 30px; /* Height for each row (pad) */
+  width: max-content; /* Allow grid to expand horizontally */
+}
+
+.sequencer-header, .track-name, .step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.step {
+  /* Dynamic styles moved to HTML using [class] bindings */
+}
+
+.drum-pad.lit {
+  animation: lit-pad-flash 0.1s ease-out forwards;
+}
+
+@keyframes lit-pad-flash {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+.aura-slider {
+  -webkit-appearance: none;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--color-amber-900); /* Default background */
+  outline: none;
+  opacity: 0.7;
+  transition: opacity .2s;
+}
+
+.aura-slider:hover {
+  opacity: 1;
+}
+
+.aura-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-amber-400); /* Default thumb color */
+  cursor: pointer;
+  border: 1px solid var(--color-amber-900);
+}
+
+.aura-slider::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--color-amber-400);
+  cursor: pointer;
+  border: 1px solid var(--color-amber-900);
+}
+
+.vertical-slider {
+  writing-mode: bt-lr; /* For vertical display */
+  -webkit-appearance: slider-vertical;
+  width: 8px;
+  height: 100px; /* Example height */
+  padding: 0 5px;
+}
+.vertical-slider::-webkit-slider-runnable-track {
+    background: var(--color-amber-900);
+    width: 4px;
+    border-radius: 2px;
+}
+
+.vertical-slider::-webkit-slider-thumb {
+   -webkit-appearance: none;
+   appearance: none;
+   width: 12px;
+   height: 12px;
+   border-radius: 50%;
+   background: var(--color-amber-400);
+   cursor: pointer;
+   border: 1px solid var(--color-amber-900);
+}
+
+.vertical-slider::-moz-range-track {
+    background: var(--color-amber-900);
+    width: 4px;
+    border-radius: 2px;
+}
+
+.vertical-slider::-moz-range-thumb {
+   width: 12px;
+   height: 12px;
+   border-radius: 50%;
+   background: var(--color-amber-400);
+   cursor: pointer;
+   border: 1px solid var(--color-amber-900);
+}
+
+/* Custom scrollbar for sample list */
+.sample-list::-webkit-scrollbar {
+  width: 8px;
+}
+
+.sample-list::-webkit-scrollbar-track {
+  background: var(--color-stone-800); /* Default background */
+}
+
+.sample-list::-webkit-scrollbar-thumb {
+  background: var(--color-amber-600); /* Default thumb color */
+  border: 1px solid var(--color-stone-900); /* Default border color */
+}
+
+.sample-list::-webkit-scrollbar-thumb:hover {
+  background: var(--color-amber-500); /* Default hover color */
+}

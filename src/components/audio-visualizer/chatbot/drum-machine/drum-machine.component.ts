@@ -2,7 +2,8 @@ import { Component, ChangeDetectionStrategy, signal, OnDestroy, AfterViewInit, o
 import { CommonModule } from '@angular/common';
 // FIX: Correctly import 'kits' and 'SAMPLE_LIBRARY' which are now exported from 'samples.ts'.
 import { SAMPLES, Kit, Pad, kits, SAMPLE_LIBRARY } from './samples';
-import { SampleLibraryComponent } from '../sample-library/sample-library.component'; // New: Import SampleLibraryComponent
+import { SampleLibraryComponent } from '../../../sample-library/sample-library.component'; // New: Import SampleLibraryComponent
+import { AppTheme } from '../../app.component';
 
 const MIDI_NOTE_TO_PAD_MAP: { [key: number]: number } = {
   36: 0, 37: 1, 38: 2, 39: 3, // C1 (Kick) to D#1 (Clap)
@@ -46,6 +47,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   // New: Inputs for routing state from parent
   isDrumRoutedA = input(false);
   isDrumRoutedB = input(false);
+  theme = input.required<AppTheme>(); // NEW: Input for current theme
 
   // Outputs for routing
   routeToDeck = output<{ stream: MediaStream, deckId: 'A' | 'B' | null }>();
@@ -87,7 +89,7 @@ export class DrumMachineComponent implements AfterViewInit, OnDestroy {
   
     if (!this.audioContext) {
       this.audioContext = new AudioContext();
-      this.mediaStreamDestinationNode = this.audioContext.createMediaStreamDestination();
+      this.mediaStreamDestinationNode = this.audioContext.createMediaStreamDestination(); // Always initialize
       await this.loadSamplesForKit(this.pads());
       await this.setupMidi();
     }

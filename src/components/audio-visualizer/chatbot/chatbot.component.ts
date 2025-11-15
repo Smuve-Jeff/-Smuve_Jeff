@@ -1,6 +1,7 @@
-import { Component, ChangeDetectionStrategy, signal, output, ElementRef, viewChild } from '@angular/core';
+import { Component, ChangeDetectionStrategy, signal, output, ElementRef, viewChild, input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { GoogleGenAI, Chat, GenerateContentResponse, Type, GenerateContentParameters } from "@google/genai"; // Changed to direct named import
+import { AppTheme } from '../../app.component';
 
 // FIX: Correctly declare SpeechRecognition and related event types for TypeScript
 declare interface SpeechRecognition extends EventTarget {
@@ -60,6 +61,8 @@ interface ChatMessage {
 export class ChatbotComponent {
   close = output<void>();
   appCommand = output<{ action: string; parameters: any }>(); // New: Output for application commands
+  // FIX: Changed from output.required to input.required as theme is an input property
+  theme = input.required<AppTheme>(); // NEW: Input for current theme
 
   messages = signal<ChatMessage[]>([]);
   userMessage = signal('');
@@ -179,7 +182,14 @@ EXAMPLE RESPONSE: CHAT:::The best way to promote a new single involves a multi-p
 
     const rawApiKey = process.env.API_KEY;
 
-    // 1. Must be a string. Handles null, undefined, numbers, etc.
+    // IMPORTANT: Explicitly check for the literal string "undefined" first.
+    // This handles cases where build tools might replace an unset env var with this string literal.
+    if (typeof rawApiKey === 'string' && rawApiKey.toLowerCase() === 'undefined') {
+      console.warn("API_KEY: Detected literal string 'undefined'. This typically indicates a missing environment variable or a build configuration issue. AI features will be disabled.");
+      return null;
+    }
+
+    // 1. Must be a string. Handles null, undefined, numbers, etc. that aren't the literal string "undefined".
     if (typeof rawApiKey !== 'string') {
       console.warn(`API_KEY: Received non-string type: ${typeof rawApiKey}. Expected string.`);
       return null;
@@ -193,9 +203,9 @@ EXAMPLE RESPONSE: CHAT:::The best way to promote a new single involves a multi-p
       return null;
     }
 
-    // 3. Check for common placeholder strings (case-insensitive)
+    // 3. Check for other common placeholder strings (case-insensitive)
     const lowercasedKey = trimmedApiKey.toLowerCase();
-    if (lowercasedKey === 'undefined' || lowercasedKey === 'null' || lowercasedKey === '[api_key]' || lowercasedKey === 'your_api_key') {
+    if (lowercasedKey === 'null' || lowercasedKey === '[api_key]' || lowercasedKey === 'your_api_key') {
       console.warn(`API_KEY: Received a common placeholder string: '${trimmedApiKey}'. API key is not set.`);
       return null;
     }
@@ -306,6 +316,7 @@ EXAMPLE RESPONSE: CHAT:::The best way to promote a new single involves a multi-p
         config: {
           tools: [{ googleSearch: {} }],
           // DO NOT set responseMimeType or responseSchema for googleSearch tool
+          // Removed responseMimeType and responseSchema from here.
         },
       };
 

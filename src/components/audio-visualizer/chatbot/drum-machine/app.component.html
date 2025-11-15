@@ -123,7 +123,7 @@
                       <span>LOW</span> <input type="range" min="0" max="100" [value]="deckA().eqLow" (input)="onEqChange($event, 'A', 'Low')" class="w-20 aura-slider">
                     </div>
                     <div class="flex flex-col items-center">
-                      <span>FX</span> <input type="range" min="0" max="1" step="0.01" value="1" (input)="onFilterChange($event, 'A')" class="w-20 aura-slider">
+                      <span>FX</span> <input type="range" min="0" max="1" step="0.01" [value]="getNormalizedFilterValue(deckA().filterFreq)" (input)="onFilterChange($event, 'A')" class="w-20 aura-slider">
                     </div>
                  </div>
                  <div class="vu-meter" [class]="'border-' + currentTheme().neutral + '-700'" [class]="djBgStone800">
@@ -212,7 +212,7 @@
               <h3 class="text-sm flex items-center justify-center gap-2">
                 [ MICROPHONE ]
                 @if (micEnabled()) {
-                  <span class="w-3 h-3 rounded-full bg-green-500 rec-indicator" [class.recording]="true"></span>
+                  <span class="w-3 h-3 rounded-full bg-green-500 rec-indicator recording"></span>
                   <span class="text-xs text-green-500">[ ACTIVE ]</span>
                 }
               </h3>
@@ -248,7 +248,7 @@
                   </div>
                    <div class="flex flex-col items-center">
                     <span class="text-xs">FX</span>
-                    <input type="range" min="0" max="1" step="0.01" value="1" (input)="onMicFilterChange($event)" class="w-20 aura-slider vertical-slider h-24">
+                    <input type="range" min="0" max="1" step="0.01" [value]="getNormalizedFilterValue(micFilterFreq())" (input)="onMicFilterChange($event)" class="w-20 aura-slider vertical-slider h-24">
                   </div>
                 </div>
               }
@@ -352,7 +352,7 @@
                       <span>LOW</span> <input type="range" min="0" max="100" [value]="deckB().eqLow" (input)="onEqChange($event, 'B', 'Low')" class="w-20 aura-slider">
                     </div>
                     <div class="flex flex-col items-center">
-                      <span>FX</span> <input type="range" min="0" max="1" step="0.01" value="1" (input)="onFilterChange($event, 'B')" class="w-20 aura-slider">
+                      <span>FX</span> <input type="range" min="0" max="1" step="0.01" [value]="getNormalizedFilterValue(deckB().filterFreq)" (input)="onFilterChange($event, 'B')" class="w-20 aura-slider">
                     </div>
                  </div>
                  <div class="vu-meter" [class]="'border-' + currentTheme().neutral + '-700'" [class]="djBgStone800">
@@ -374,6 +374,7 @@
             (routeToDeck)="handleDrumRoute($event)" 
             [isDrumRoutedA]="isDrumRoutedA()" 
             [isDrumRoutedB]="isDrumRoutedB()"
+            [theme]="currentTheme()"
           ></app-drum-machine>
         }
         @case ('player') {
@@ -390,7 +391,7 @@
               }
             </div>
             <!-- NEW: Audio Visualizer -->
-            <app-audio-visualizer [analyserNode]="getMasterAnalyser()" class="w-full h-24 mt-2"></app-audio-visualizer>
+            <app-audio-visualizer [analyserNode]="getMasterAnalyser()" class="w-full h-24 mt-2" [theme]="currentTheme()"></app-audio-visualizer>
 
             <div class="text-center">
               <h3 class="text-xl truncate" [class]="mainTextColorClass()" [title]="deckA().track.title">{{ deckA().track.title }}</h3>
@@ -492,12 +493,14 @@
           <app-image-editor 
             (imageSelected)="handleImageSelectedForAlbumArt($event)"
             [initialPrompt]="imageEditorInitialPrompt()"
+            [theme]="currentTheme()"
           ></app-image-editor>
         }
         @case ('video-editor') {
           <app-video-editor 
             [imageForVideoGeneration]="lastImageEditorImageUrl()"
             [initialPrompt]="videoEditorInitialPrompt()"
+            [theme]="currentTheme()"
           ></app-video-editor>
         }
       }
@@ -509,7 +512,8 @@
         [enhancements]="enhancements()"
         (close)="toggleEqPanel()"
         (eqChange)="onMasterEqChange($event)"
-        (enhancementsChange)="onEnhancementsChange($event)">
+        (enhancementsChange)="onEnhancementsChange($event)"
+        [theme]="currentTheme()">
       </app-eq-panel>
     }
 
@@ -519,7 +523,7 @@
   </div>
 
   @if (showChatbot()) {
-    <app-chatbot (appCommand)="handleChatbotCommand($event)" (close)="showChatbot.set(false)"></app-chatbot>
+    <app-chatbot (appCommand)="handleChatbotCommand($event)" (close)="showChatbot.set(false)" [theme]="currentTheme()"></app-chatbot>
   }
 
   <!-- NEW: Apply Album Art Modal -->

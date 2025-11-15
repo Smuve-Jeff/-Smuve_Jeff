@@ -1,0 +1,16 @@
+.chat-history::-webkit-scrollbar {
+  width: 8px;
+}
+
+.chat-history::-webkit-scrollbar-track {
+  background: var(--chat-history-track-bg);
+}
+
+.chat-history::-webkit-scrollbar-thumb {
+  background: var(--chat-history-thumb-bg);
+  border: 1px solid var(--chat-history-thumb-border);
+}
+
+.chat-history::-webkit-scrollbar-thumb:hover {
+  background: var(--chat-history-thumb-hover-bg);
+}

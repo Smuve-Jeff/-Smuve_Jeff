@@ -1,11 +1,8 @@
-
-
-
-
 import { Component, ChangeDetectionStrategy, input, output, signal, inject, ElementRef, viewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 // FIX: The import itself is correct, but the imported members were missing from the source file. This is now fixed in samples.ts.
 import { Pad, SampleCategory, SAMPLE_LIBRARY, SAMPLES } from '../drum-machine/samples';
+import { AppTheme } from '../../app.component';
 
 @Component({
   selector: 'app-sample-library',
@@ -17,6 +14,7 @@ import { Pad, SampleCategory, SAMPLE_LIBRARY, SAMPLES } from '../drum-machine/sa
 export class SampleLibraryComponent {
   pads = input.required<Pad[]>();
   selectedPadIndex = input.required<number | null>();
+  theme = input.required<AppTheme>(); // NEW: Input for current theme
 
   close = output<void>();
   sampleAssigned = output<{ sampleKey: string; base64Data?: string }>();
@@ -60,6 +58,7 @@ export class SampleLibraryComponent {
       this.currentAudioSource = null;
     }
 
+    // Access SAMPLES directly from the imported constant, or use the provided dataUrl
     const audioData = dataUrl || SAMPLES[sampleKey];
     if (!audioData) {
       console.warn(`No audio data found for sample key: ${sampleKey}`);

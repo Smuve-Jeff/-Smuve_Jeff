@@ -1,7 +1,6 @@
-
 import { Component, ChangeDetectionStrategy, input, output, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { EqBand, Enhancements } from '../../app.component';
+import { EqBand, Enhancements, AppTheme } from '../../app.component';
 
 @Component({
   selector: 'app-eq-panel',
@@ -13,6 +12,7 @@ import { EqBand, Enhancements } from '../../app.component';
 export class EqPanelComponent {
   eqSettings = input.required<EqBand[]>();
   enhancements = input.required<Enhancements>();
+  theme = input.required<AppTheme>(); // NEW: Input for current theme
 
   close = output<void>();
   eqChange = output<EqBand[]>();
